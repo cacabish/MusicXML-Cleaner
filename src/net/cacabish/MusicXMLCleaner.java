@@ -338,6 +338,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	public static void addPageNumbersAndMiniTitles(Document document) {
+		System.out.println("Adding page numbers and mini-titles...");
 		if (document == null) {
 			return; // Wow. Just. Wow. :(
 		}
@@ -351,6 +352,7 @@ public final class MusicXMLCleaner {
 		
 		// Check to proceed
 		if (margins == null || pageWidth == -1 || pageHeight == -1 || title == null || numberOfPages == -1) {
+			System.out.println("Missing one or more pieces of information, aborting.");
 			return; // We're missing some critical piece of information, so abort.
 		}
 		if (numberOfPages == 1) {
@@ -381,8 +383,8 @@ public final class MusicXMLCleaner {
 		NodeList creditList = document.getElementsByTagName("credit");
 		for (int i = 0; i < creditList.getLength(); i++) {
 			Element creditTag = (Element) creditList.item(i);
-			String page = creditTag.getAttribute("page");
-			if (page.isEmpty() || page.equals("1")) {
+			String pageAttribute = creditTag.getAttribute("page");
+			if (pageAttribute.isEmpty() || pageAttribute.equals("1")) {
 				// Page numbers and mini titles exist on pages 2+.
 				// This means it is on page 1. Ignore.
 				continue;
@@ -391,7 +393,7 @@ public final class MusicXMLCleaner {
 			// Convert the attribute to an integer
 			int pageNumber;
 			try {
-				pageNumber = Integer.parseInt(page);
+				pageNumber = Integer.parseInt(pageAttribute);
 			} catch (NumberFormatException e) {
 				// The attribute didn't contain a numerical value. Ignore.
 				continue;
@@ -409,7 +411,7 @@ public final class MusicXMLCleaner {
 			Element candidateTag = (Element) creditWordsList.item(0);
 			String content = candidateTag.getTextContent().trim();
 			
-			if (content.equals(page)) {
+			if (content.equals(pageAttribute)) {
 				// This is a page number. Ensure the formatting attributes.
 				candidateTag.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
 				candidateTag.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
@@ -528,6 +530,8 @@ public final class MusicXMLCleaner {
 				partListTag.getParentNode().insertBefore(pageNumberCreditTag, partListTag);
 			}
 		}
+		
+		System.out.println("All done adding page numbers and mini-titles!");
 	}
 	
 	/**
@@ -539,12 +543,14 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	public static void addSystemMeasureNumbers(Document document) {
+		System.out.println("Adding measure numbers...");
 		if (document == null) {
 			return; // Did you expect something *magical* to happen? :(
 		}
 		
 		NodeList printList = document.getElementsByTagName("print");
 		if (printList.getLength() == 0) {
+			System.out.println("No print tag detected. Aborting.");
 			return; // We've got nothing to work with, so abort.
 		}
 		
@@ -558,6 +564,7 @@ public final class MusicXMLCleaner {
 			checkList.item(0).setTextContent("system");
 			
 			// We're done.
+			System.out.println("Measure numbers already exist.");
 			return; 
 		}
 		
@@ -577,6 +584,7 @@ public final class MusicXMLCleaner {
 				firstPrint.appendChild(measureNumberingTag);
 				
 				// We've added it, so we're done.
+				System.out.println("Done adding measure numbers!");
 				return;
 			}
 		}
@@ -584,6 +592,7 @@ public final class MusicXMLCleaner {
 		// At this point, either <part-name-display> exists or <part-name-display> doesn't exist but <part-abbreviation-display> does exist.
 		// Either way, the tag is stored in the NodeList and so simply add the <measure-numbering> tag before these tags
 		firstPrint.insertBefore(measureNumberingTag, successorList.item(0));
+		System.out.println("Done adding measure numbers!");
 	}
 	
 	/**
@@ -594,6 +603,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	public static void removeDuplicateCopyrightInfo(Document document) {
+		System.out.println("Removing duplicate copyright info...");
 		if (document == null) {
 			return; // For real? :(
 		}
@@ -601,6 +611,7 @@ public final class MusicXMLCleaner {
 		String copyrightInfo = getCopyrightInfo(document);
 		
 		if (copyrightInfo == null) {
+			System.out.println("Unable to fetch copyright info. Aborting.");
 			return; // We have nothing to work with, so return
 		}
 		
@@ -636,9 +647,12 @@ public final class MusicXMLCleaner {
 					// This is the primary copyright information. 
 					// While we have a handle on it, add the font-size attribute.
 					creditWordsElement.setAttribute("font-size", "10");
+					System.out.println("Font size corrected on primary copyright information.");
 				}
 			}
 		}
+		
+		System.out.println("All done removing duplicate copyright information!");
 	}
 	
 	/**
@@ -649,6 +663,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	public static void correctTempoMark(Document document) {
+		System.out.println("Correcting the tempo mark...");
 		if (document == null) {
 			return; // Shocking. :(
 		}
@@ -686,6 +701,7 @@ public final class MusicXMLCleaner {
 				
 				if (wordsList.getLength() == 0) {
 					// This is something else. I'm not sure what would be here, but I don't know how to handle it. Abort.
+					System.out.println("Unexpected element before metronome mark. Skipping.");
 					continue;
 				}
 				else {
@@ -714,6 +730,8 @@ public final class MusicXMLCleaner {
 					metronomeTag.setAttribute("font-weight", "normal");
 				}
 			}
+			
+			System.out.println("All finished correcting tempo markings!");
 		}
 		
 		/* 
@@ -732,6 +750,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	public static void centerCreditsHorizontally(Document document)  {
+		System.out.println("Centering all relevant text...");
 		if (document == null) {
 			return; // Are null objects ever safe to pass into a method modifying said object? :(
 		}
@@ -740,8 +759,10 @@ public final class MusicXMLCleaner {
 		double[][] margins = getPageMargins(document); // REMINDER: left, right, top, bottom
 		double pageWidth = getPageWidth(document);
 		
-		if (margins == null || pageWidth == -1)
+		if (margins == null || pageWidth == -1) {
+			System.out.println("Missing either the margins or the page width. Aborting.");
 			return; // We don't have what we need to do anything, so abort.
+		}
 		
 		// Compute the "default-x" values for the centered credit tags
 		double evenCenter = (pageWidth - margins[0][1] + margins[0][0]) / 2.0;
@@ -775,6 +796,8 @@ public final class MusicXMLCleaner {
 				}
 			}
 		}
+		
+		System.out.println("Done centering all relevant credits!");
 	}
 	
 	/**
@@ -791,6 +814,7 @@ public final class MusicXMLCleaner {
 		else if (destinationFile == null) {
 			throw new IllegalArgumentException("file provided was null"); // You are trying to save to nothing? Why?! :(
 		}
+		System.out.println("Writing to file " + destinationFile + "...");
 		
 		// Create a new factory and transformer
 		TransformerFactory factory = TransformerFactory.newInstance();
@@ -819,6 +843,7 @@ public final class MusicXMLCleaner {
 		writer.close();
 		
 		// Fin!
+		System.out.println("Write successful!");
 	}
 	
 }

@@ -91,6 +91,8 @@ public class CleanerFrame extends JFrame {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+		System.out.println("Hello world!");
+		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -258,6 +260,8 @@ public class CleanerFrame extends JFrame {
 			}
 		});
 		panel.add(btnOpenFile);
+		
+		System.out.println("GUI Initialized.");
 	}
 	
 	/**
@@ -302,6 +306,8 @@ public class CleanerFrame extends JFrame {
 			MusicXMLCleaner.removeDuplicateCopyrightInfo(validatedDoc);
 			MusicXMLCleaner.correctTempoMark(validatedDoc);
 			MusicXMLCleaner.centerCreditsHorizontally(validatedDoc);
+			
+			System.out.println("All corrections successful. Prompting to save...");
 			
 			// Still here? Great! Save!
 			saveFile(fileToLoad, validatedDoc);
