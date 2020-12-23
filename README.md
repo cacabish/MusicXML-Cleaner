@@ -30,7 +30,6 @@ You can download Java [here](https://www.java.com/en/download/).
 3. That's it! If the save is successful, you should see a window confirming the save.
 
 ## License
-
 MIT License
 
 Copyright (c) 2020 cacabish
@@ -52,3 +51,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+### A Word from the Developer
+This program is not intended to be a strictly formal piece of software, nor follow standard industry protocols. This is intended as a fun, personal project for aiding those who use MuseScore when arranging for www.NinSheetMusic.org, which includes myself, whilst keeping it open source for other contributors to further its development as new bugs are discovered and as new version of MuseScore are released. Thanks!
