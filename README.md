@@ -13,7 +13,7 @@ This program does the following:
 * Offsets systems so that unindented systems align with the left margin
 
 ## Installation
-Go to https://github.com/cacabish/MusicXML-Cleaner/releases and download the .jar file corresponding to the desired version. Do NOT download the source code. There is no installation required, simply double click to execute.
+Go to https://github.com/cacabish/MusicXML-Cleaner/releases/latest and download the latest .jar file corresponding to the desired version. Do NOT download the source code. There is no installation required, simply double click to execute.
 
 **Requires Java 8 or higher. Recommended: Java 11 or higher.**
 You can download Java [here](https://www.java.com/en/download/).
