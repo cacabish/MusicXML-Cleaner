@@ -32,15 +32,15 @@ import javax.swing.JSeparator;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version 1.0.0
+ * @version 1.1.0
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "1.0.0";
-	public static final String MUSESCORE_VERSION = "3.5.2";
+	public static final String VERSION = "1.1.0";
+	public static final String MUSESCORE_VERSION = "3.6.2";
 
 	private final JPanel contentPane;
 	
@@ -197,7 +197,7 @@ public class CleanerFrame extends JFrame {
 				JOptionPane.showMessageDialog(contentPane, 
 						"A tool for NinSheetMusic.org arrangers who use MuseScore."
 								+ System.lineSeparator() + System.lineSeparator() +
-						"Copyright © 2020 cacabish" 
+						"Copyright ï¿½ 2020 cacabish" 
 								+ System.lineSeparator() +
 						"MusicXML 3.1 by W3C Music Notation Community Group"
 								+ System.lineSeparator() +
@@ -306,6 +306,7 @@ public class CleanerFrame extends JFrame {
 			MusicXMLCleaner.removeDuplicateCopyrightInfo(validatedDoc);
 			MusicXMLCleaner.correctTempoMark(validatedDoc);
 			MusicXMLCleaner.centerCreditsHorizontally(validatedDoc);
+			MusicXMLCleaner.offsetSystemMarginsToAlignWithLeftMargin(validatedDoc);
 			
 			System.out.println("All corrections successful. Prompting to save...");
 			
@@ -313,7 +314,8 @@ public class CleanerFrame extends JFrame {
 			saveFile(fileToLoad, validatedDoc);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(this, "Unable to parse " + fileToLoad.getName() 
-					+ ". Reason: " + e.getMessage(), "Failed to Parse File", JOptionPane.ERROR_MESSAGE);
+					+ ". Please let cacabish know about this!"
+					+ " Reason: " + e.toString(), "Failed to Parse File", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 		

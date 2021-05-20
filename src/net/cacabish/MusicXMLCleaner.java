@@ -34,7 +34,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version 1.0.0
+ * @version 1.1.0
  *
  */
 public final class MusicXMLCleaner {
@@ -67,6 +67,7 @@ public final class MusicXMLCleaner {
 	public static Document constructAndValidateMusicXMLDocument(File file) throws ParserConfigurationException, SAXException, IOException {
 		if (file == null)
 			throw new IllegalArgumentException("file provided was null"); // You should know better than that. :(
+		System.out.println("Loading file " + file.getName() + "...");
 		
 		DocumentBuilder builder = DBF.newDocumentBuilder();
 		
@@ -104,6 +105,7 @@ public final class MusicXMLCleaner {
 		}
 		else {
 			// All is well
+			System.out.println("Successfully constructed and validated the XML file!");
 			return primaryDoc;
 		}
 	}
@@ -618,7 +620,8 @@ public final class MusicXMLCleaner {
 		// Get a list of all the <credit> tags
 		NodeList nodeList = document.getElementsByTagName("credit");
 		
-		for (int i = 0; i < nodeList.getLength(); i++) {
+		// Iterate over the list backwards since we are deleting elements and want to avoid a concurrency issue.
+		for (int i = nodeList.getLength() - 1; i >= 0; i--) {
 			Element creditElement = (Element) nodeList.item(i);
 			String pageNumber = creditElement.getAttribute("page"); // Gets the page number of the credit. NOTE: This can be "" if assumed to be page 1
 			
@@ -636,7 +639,7 @@ public final class MusicXMLCleaner {
 					
 					// If there is a newline and whitespace before this element, delete it.
 					Node previousNode = creditElement.getPreviousSibling();
-					if (previousNode.getNodeType() == Node.TEXT_NODE) {
+					if (previousNode != null && previousNode.getNodeType() == Node.TEXT_NODE) {
 						previousNode.getParentNode().removeChild(previousNode);
 					}
 					
@@ -742,14 +745,14 @@ public final class MusicXMLCleaner {
 	}
 	
 	/**
-	 * This takes any {@code <credit>} tag with the attribute {@code "justify"="center"} and centers it 
+	 * This takes any {@code <credit>} tag with the attribute {@code "justify"="center"} or {@code "halign"="center"} and centers it 
 	 * (i.e. modifies the {@code default-x} attribute} with respect to the margins.
 	 * This method will modify the attribute, even if the new values are the same as the old values.
 	 * <br><br>
 	 * If this method is unable to fetch the page margins or page width, this method returns immediately and does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void centerCreditsHorizontally(Document document)  {
+	public static void centerCreditsHorizontally(Document document) {
 		System.out.println("Centering all relevant text...");
 		if (document == null) {
 			return; // Are null objects ever safe to pass into a method modifying said object? :(
@@ -798,6 +801,134 @@ public final class MusicXMLCleaner {
 		}
 		
 		System.out.println("Done centering all relevant credits!");
+	}
+	
+	/**
+	 * Offsets each system's left margin by the smallest left margin found. 
+	 * If the offset renders the new margin relatively close to 0 (within some epsilon), then the <system-margins> tag is deleted.
+	 * <br><br>
+	 * The method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
+	 * @param document a validated MusicXML v3.1 document
+	 */
+	public static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
+		System.out.println("Left aligning systems with the left margins...");
+		if (document == null) {
+			return; // Bruh. :(
+		}
+		
+		// Fetch all the <system-layout> tags
+		NodeList allSystemLayoutTags = document.getElementsByTagName("system-layout");
+		
+		// We need to find the minimum left-margin value
+		double minimumValue = Double.MAX_VALUE;
+		
+		// Iterate over all the <system-layout> tags
+		for (int i = 0; i < allSystemLayoutTags.getLength(); i++) {
+			Element systemLayoutElement = (Element) allSystemLayoutTags.item(i);
+			
+			// Fetch the <system-margins> child of the <system-layout> tag.
+			NodeList systemMarginsTags = systemLayoutElement.getElementsByTagName("system-margins");
+			
+			// We will be operating on a single <system-margins> tag, so we need to use that.
+			if (systemMarginsTags.getLength() != 1) {
+				// We don't need to do anything because this is either a bug (if > 1) or this doesn't exist (if == 0), which can happen according to the schema
+				continue;
+			}
+			
+			// Since we know there is exactly one child, fetch it.
+			Element systemMarginsElement = (Element) systemMarginsTags.item(0);
+			
+			// Great! Now, we need to get the <left-margin> child of the <system-margins> tag. According to the schema, it MUST exist and there is exactly one of them.
+			NodeList leftMarginTag = systemMarginsElement.getElementsByTagName("left-margin");
+			
+			// As a sanity check, assert there is only one
+			if (leftMarginTag.getLength() != 1) {
+				// Again, this shouldn't happen, but for defensive code, I'm putting this here.
+				continue;
+			}
+			
+			// Get the left-margins tag
+			Element leftMarginsElement = (Element) leftMarginTag.item(0);
+			try {
+				// Read the value
+				double value = Double.parseDouble(leftMarginsElement.getTextContent());
+				
+				// Take the smaller of this value and the running minimum.
+				minimumValue = Math.min(value, minimumValue);
+			}
+			catch (NumberFormatException e) {
+				// This tag errantly contains a non-number (why did this happen??), so ignore this.
+				continue;
+			}
+			
+		}
+		
+		
+		// Worst case check
+		if (minimumValue == Double.MAX_VALUE) {
+			// Nothing changed? Strange, but we can't do anything with this. Return.
+			return;
+		}
+		
+		
+		// At this point, we have determined what the smallest left margin is. Hoo-ray! 
+		// Now, we're going to zero out all systems that we can and offset what should be the first system (or any other indented system)
+		
+		// The absolute threshold to be constituted as 0 margin and warrant deletion.
+		final double epsilon = 0.1;
+		
+		// Iterate over all the <system-layout> tags again!
+		// Iterate over it backwards since we are potentially deleting elements and want to avoid a concurrency issue.
+		for (int i = allSystemLayoutTags.getLength() - 1; i >= 0; i--) {
+			Element systemLayoutElement = (Element) allSystemLayoutTags.item(i);
+			
+			// Fetch the <system-margins> child of the <system-layout> tag.
+			NodeList systemMarginsTags = systemLayoutElement.getElementsByTagName("system-margins");
+			
+			// Once again, assert the length is 1
+			if (systemMarginsTags.getLength() != 1) {
+				continue;
+			}
+			
+			// Since we know there is exactly one child, fetch it.
+			Element systemMarginsElement = (Element) systemMarginsTags.item(0);
+			
+			// Great! Now, we need to get the <left-margin> child of the <system-margins> tag. According to the schema, it MUST exist and there is exactly one of them.
+			NodeList leftMarginTag = systemMarginsElement.getElementsByTagName("left-margin");
+			
+			// As a sanity check, assert there is only one
+			if (leftMarginTag.getLength() != 1) {
+				continue;
+			}
+			
+			// Get the left-margins tag
+			Element leftMarginsElement = (Element) leftMarginTag.item(0);
+			
+			try {
+				// Read the value
+				double value = Double.parseDouble(leftMarginsElement.getTextContent());
+				
+				// Now offset the value by the minimum value
+				double newValue = value - minimumValue;
+				
+				// Now, check for an approximate zero. Since we are handling floating-point numbers, we use a threshold epsilon.
+				if (Math.abs(newValue) < epsilon) {
+					// This tag is effectively a 0 margin, so delete the <system-margins> tag and its two subtags.
+					// Delete the element.
+					systemMarginsElement.getParentNode().removeChild(systemMarginsElement);
+				}
+				else {
+					// This system is indented some, so we just change the indentation.
+					leftMarginsElement.setTextContent(String.format("%.2f", newValue)); // Since MuseScore uses 2 decimal places of accuracy, so will I.
+				}
+			}
+			catch (NumberFormatException e) {
+				// This tag errantly contains a non-number (why did this happen??), so ignore this.
+				continue;
+			}
+		}
+		
+		System.out.println("Done left-aligning all non-indented systems and offsetting those that are indented!");
 	}
 	
 	/**
