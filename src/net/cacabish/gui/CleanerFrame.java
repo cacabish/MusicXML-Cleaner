@@ -23,23 +23,26 @@ import javax.swing.filechooser.FileFilter;
 
 import net.cacabish.MusicXMLCleaner;
 
-import org.w3c.dom.Document;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
+import javax.swing.JCheckBox;
+import javax.swing.BoxLayout;
+import javax.swing.border.TitledBorder;
+import javax.swing.border.EtchedBorder;
 
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version 1.1.0
+ * @version 1.2.0
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "1.1.0";
+	public static final String VERSION = "1.2.0";
 	public static final String MUSESCORE_VERSION = "3.6.2";
 
 	private final JPanel contentPane;
@@ -174,7 +177,11 @@ public class CleanerFrame extends JFrame {
 								+ System.lineSeparator() +
 						"Then change the \"Save as type\" to \"Uncompressed MusicXML File (*.musicxml)\" and Save." 
 							+ System.lineSeparator() + System.lineSeparator() +
-						"Next, load up this program and either drag-and-drop the newly exported file onto the window or click the button below and select the file." 
+						"Next, load up this program."
+							+ System.lineSeparator() +
+						"Check the boxes corresponding to the operations you'd like done on the sheet."
+							+ System.lineSeparator() +
+						"Then, either drag-and-drop the newly exported file onto the window or click the button below and select the file." 
 							+ System.lineSeparator() +
 						"Finally, let the program work its magic and then it will prompt you to save the cleaned file. "
 							+ System.lineSeparator() +
@@ -197,7 +204,7 @@ public class CleanerFrame extends JFrame {
 				JOptionPane.showMessageDialog(contentPane, 
 						"A tool for NinSheetMusic.org arrangers who use MuseScore."
 								+ System.lineSeparator() + System.lineSeparator() +
-						"Copyright � 2020 cacabish" 
+						"Copyright (c) 2020-21 cacabish" 
 								+ System.lineSeparator() +
 						"MusicXML 3.1 by W3C Music Notation Community Group"
 								+ System.lineSeparator() +
@@ -245,12 +252,12 @@ public class CleanerFrame extends JFrame {
 		
 		setContentPane(contentPane);
 		
-		JLabel lblDragAndDrop = new JLabel("Drag and drop a .musicxml file to convert here or use the button below.");
+		JLabel lblDragAndDrop = new JLabel("<html>Drag and drop a .musicxml file to convert here<br> or use the button below.</html>");
 		lblDragAndDrop.setHorizontalAlignment(SwingConstants.CENTER);
 		contentPane.add(lblDragAndDrop, BorderLayout.CENTER);
 		
-		JPanel panel = new JPanel();
-		contentPane.add(panel, BorderLayout.SOUTH);
+		JPanel southPanel = new JPanel();
+		contentPane.add(southPanel, BorderLayout.SOUTH);
 		
 		// Open File Button
 		JButton btnOpenFile = new JButton("Choose .musicxml File...");
@@ -259,7 +266,108 @@ public class CleanerFrame extends JFrame {
 				showFileChooserAndLoad();
 			}
 		});
-		panel.add(btnOpenFile);
+		southPanel.add(btnOpenFile);
+		
+		
+		
+		/* 
+		 * ============================
+		 * ===== OPERATIONS PANEL =====
+		 * ============================
+		 */
+		
+		JPanel operationsPanel = new JPanel();
+		operationsPanel.setBorder(
+				new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Operations to Perform", TitledBorder.LEADING, TitledBorder.TOP, null, null)
+				);
+		contentPane.add(operationsPanel, BorderLayout.WEST);
+		operationsPanel.setLayout(new BoxLayout(operationsPanel, BoxLayout.Y_AXIS));
+		
+		JCheckBox chckbxAddMiniTitles = new JCheckBox("Add Mini-titles & Page Numbers");
+		chckbxAddMiniTitles.setToolTipText("If checked, the program will add mini-title and page numbers to pages 2+.");
+		chckbxAddMiniTitles.setSelected(MusicXMLCleaner.addMiniTitlesAndPageNumbers); // Set the default
+		chckbxAddMiniTitles.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.addMiniTitlesAndPageNumbers = chckbxAddMiniTitles.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxAddMiniTitles);
+		
+		JCheckBox chckbxAddSystemMeasureNumbers = new JCheckBox("Add System Measure Numbers");
+		chckbxAddSystemMeasureNumbers.setToolTipText("If checked, the program will add the tag that creates system measure numbers.");
+		chckbxAddSystemMeasureNumbers.setSelected(MusicXMLCleaner.addSystemMeasureNumbers); // Set the default
+		chckbxAddSystemMeasureNumbers.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.addSystemMeasureNumbers = chckbxAddSystemMeasureNumbers.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxAddSystemMeasureNumbers);
+		
+		JCheckBox chckbxRemoveExtraneousCopyright = new JCheckBox("Remove Extraneous Copyright");
+		chckbxRemoveExtraneousCopyright.setToolTipText("If checked, the program will remove copyright information from pages 2+. "
+				+ "It will also correct the formatting of the copyright information on page 1.");
+		chckbxRemoveExtraneousCopyright.setSelected(MusicXMLCleaner.removeDuplicateCopyrightInfo); // Set the default
+		chckbxRemoveExtraneousCopyright.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.removeDuplicateCopyrightInfo = chckbxRemoveExtraneousCopyright.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxRemoveExtraneousCopyright);
+		
+		JCheckBox chckbxCorrectTempoMarking = new JCheckBox("Correct Tempo Marking");
+		chckbxCorrectTempoMarking.setToolTipText("If checked, the program will make necessary adjustments so tempo directional texts "
+				+ "and their associated metrnonome marks are one object.");
+		chckbxCorrectTempoMarking.setSelected(MusicXMLCleaner.correctTempoMarking); // Set the default
+		chckbxCorrectTempoMarking.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.correctTempoMarking = chckbxCorrectTempoMarking.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxCorrectTempoMarking);
+		
+		JCheckBox chckbxCenterCreditsHorizontally = new JCheckBox("Center Credits Horizontally");
+		chckbxCenterCreditsHorizontally.setToolTipText("<html>If checked, the program will horizontally center any credit, "
+				+ "that is set as horizontally aligned, with respect to the repsective page's margins.</html>");
+		chckbxCenterCreditsHorizontally.setSelected(MusicXMLCleaner.centerCreditsHorizontally); // Set the default
+		chckbxCenterCreditsHorizontally.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.centerCreditsHorizontally = chckbxCenterCreditsHorizontally.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxCenterCreditsHorizontally);
+		
+		JCheckBox chckbxAlignSystemsWithLeftMargin = new JCheckBox("Align Systems w/ Left Margin");
+		chckbxAlignSystemsWithLeftMargin.setToolTipText("<html>If checked, the program will reduce the system margins of the left-most systems so that they align with the left margin."
+				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved.</html>");
+		chckbxAlignSystemsWithLeftMargin.setSelected(MusicXMLCleaner.offsetSystemMargins); // Set the default
+		chckbxAlignSystemsWithLeftMargin.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.offsetSystemMargins = chckbxAlignSystemsWithLeftMargin.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxAlignSystemsWithLeftMargin);
+		
+		
+		
+		
 		
 		System.out.println("GUI Initialized.");
 	}
@@ -297,21 +405,13 @@ public class CleanerFrame extends JFrame {
 		}
 		
 		try {
-			// Parse the document
-			Document validatedDoc = MusicXMLCleaner.constructAndValidateMusicXMLDocument(fileToLoad);
+			// Do the cleaning
+			MusicXMLCleaner.cleanMusicXMLFile(fileToLoad);
 			
-			// Do the cleaning!
-			MusicXMLCleaner.addPageNumbersAndMiniTitles(validatedDoc);
-			MusicXMLCleaner.addSystemMeasureNumbers(validatedDoc);
-			MusicXMLCleaner.removeDuplicateCopyrightInfo(validatedDoc);
-			MusicXMLCleaner.correctTempoMark(validatedDoc);
-			MusicXMLCleaner.centerCreditsHorizontally(validatedDoc);
-			MusicXMLCleaner.offsetSystemMarginsToAlignWithLeftMargin(validatedDoc);
-			
-			System.out.println("All corrections successful. Prompting to save...");
+			System.out.println("All corrections performed. Prompting to save...");
 			
 			// Still here? Great! Save!
-			saveFile(fileToLoad, validatedDoc);
+			saveFile(fileToLoad);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(this, "Unable to parse " + fileToLoad.getName() 
 					+ ". Please let cacabish know about this!"
@@ -322,11 +422,10 @@ public class CleanerFrame extends JFrame {
 	}
 	
 	/**
-	 * Saves the XML document to a file after prompting the user for a save location.
+	 * Saves the XML document (cached in the cleaner) to a file after prompting the user for a save location.
 	 * @param parentFile the original file that the document came from. Gives quick access to simply override the original file.
-	 * @param document the cleaned XML document to be saved to
 	 */
-	private void saveFile(File parentFile, Document document) {
+	private void saveFile(File parentFile) {
 		// Create the save file chooser
 		final JFileChooser fileChooser = new JFileChooser(parentFile) {
 
@@ -381,7 +480,7 @@ public class CleanerFrame extends JFrame {
 			
 			// Save the file!
 			try {
-				MusicXMLCleaner.writeToFile(document, chosenFile);
+				MusicXMLCleaner.writeToFile(chosenFile);
 				
 				// Optional: Notify the user of the success
 				JOptionPane.showMessageDialog(contentPane, "Successfully saved to " + chosenFile.getName(), "Save Successful", JOptionPane.INFORMATION_MESSAGE);
@@ -393,6 +492,7 @@ public class CleanerFrame extends JFrame {
 		}
 		else {
 			// They chose cancel, no, or closed the window. In all these cases, and any others unaccounted for, abort.
+			System.out.println("Save cancelled.");
 			return;
 		}
 	}

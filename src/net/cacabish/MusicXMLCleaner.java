@@ -34,16 +34,69 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version 1.1.0
+ * @version 1.2.0
  *
  */
 public final class MusicXMLCleaner {
+	
+	/*
+	 * =============================
+	 * ===== OPERATIONAL FLAGS =====
+	 * =============================
+	 */
+	
+	/**
+	 * A boolean flag signaling whether to add mini-titles and page numbers, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean addMiniTitlesAndPageNumbers   = true;
+	/**
+	 * A boolean flag signaling whether to add system measure numbers, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean addSystemMeasureNumbers       = true;
+	/**
+	 * A boolean flag signaling whether to remove extraneous copyright information, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean removeDuplicateCopyrightInfo  = true;
+	/**
+	 * A boolean flag signaling whether to correct all tempo markings, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean correctTempoMarking           = true;
+	/**
+	 * A boolean flag signaling whether to horizontally center all horizontally-aligned credits, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean centerCreditsHorizontally     = true;
+	/**
+	 * A boolean flag signaling whether to offset the system margins to align them with the left margin, when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean offsetSystemMargins           = true;
 
+	/*
+	 * ===============================
+	 * ===== MISC. STATIC FIELDS =====
+	 * ===============================
+	 */
+	
+	/**
+	 * The validated document. The document is cached here after cleaning until either saved or replaced by a new document.
+	 */
+	private static Document validatedDoc = null;
+	
 	/**
 	 * The document builder factory to construct {@code DocumentBuilder} objects from. Statically initialized.
 	 */
 	private static final DocumentBuilderFactory DBF;
 	
+	
+	
+	/**
+	 * The static method that initializes the DocumentBuilderFactory.
+	 */
 	static {
 		// Create the factory one time
 		DBF = DocumentBuilderFactory.newInstance();
@@ -57,6 +110,35 @@ public final class MusicXMLCleaner {
 	private MusicXMLCleaner() {}
 	
 	/**
+	 * Performs all operations whose boolean flags are set to true.
+	 * @param file the file to clean
+	 * @throws ParserConfigurationException throws if there is a problem getting a new {@code DocumentBuilder}
+	 * @throws SAXException throws if there is an error when parsing or validating the file
+	 * @throws IOException throws if there is an I/O error resulting from parsing the file
+	 */
+	public static void cleanMusicXMLFile(File file) throws ParserConfigurationException, SAXException, IOException {
+		System.out.println("");
+		System.out.println("===== Beginning New Cleaning Job =====");
+		
+		validatedDoc = MusicXMLCleaner.constructAndValidateMusicXMLDocument(file);
+		
+		// Do the cleaning!
+		if (addMiniTitlesAndPageNumbers)
+			MusicXMLCleaner.addPageNumbersAndMiniTitles(validatedDoc);
+		if (addSystemMeasureNumbers)
+			MusicXMLCleaner.addSystemMeasureNumbers(validatedDoc);
+		if (removeDuplicateCopyrightInfo)
+			MusicXMLCleaner.removeDuplicateCopyrightInfo(validatedDoc);
+		if (correctTempoMarking)
+			MusicXMLCleaner.correctTempoMark(validatedDoc);
+		if (centerCreditsHorizontally)
+			MusicXMLCleaner.centerCreditsHorizontally(validatedDoc);
+		if (offsetSystemMargins)
+			MusicXMLCleaner.offsetSystemMarginsToAlignWithLeftMargin(validatedDoc);
+	}
+	
+	
+	/**
 	 * Constructs an XML DOM object, given a file, and validates it against the MusicXML 3.1 schema.
 	 * @param file the file to be parsed
 	 * @return the DOM object
@@ -64,7 +146,7 @@ public final class MusicXMLCleaner {
 	 * @throws SAXException throws if there is an error when parsing or validating the file
 	 * @throws IOException throws if there is an I/O error resulting from parsing the file
 	 */
-	public static Document constructAndValidateMusicXMLDocument(File file) throws ParserConfigurationException, SAXException, IOException {
+	private static Document constructAndValidateMusicXMLDocument(File file) throws ParserConfigurationException, SAXException, IOException {
 		if (file == null)
 			throw new IllegalArgumentException("file provided was null"); // You should know better than that. :(
 		System.out.println("Loading file " + file.getName() + "...");
@@ -122,7 +204,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the page height (in units) or -1 if it could not find the value
 	 */
-	public static double getPageHeight(Document document) {
+	private static double getPageHeight(Document document) {
 		if (document == null) {
 			return -1; // Shame on you! :(
 		}
@@ -148,7 +230,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the page width (in units) or -1 if it could not find the value
 	 */
-	public static double getPageWidth(Document document) {
+	private static double getPageWidth(Document document) {
 		if (document == null) {
 			return -1; // You monster. :(
 		}
@@ -177,7 +259,7 @@ public final class MusicXMLCleaner {
 	 *         and the second double array corresponds to the odd-paged margins. 
 	 *         The margins are in the following order for both: left, right, top, bottom.
 	 */
-	public static double[][] getPageMargins(Document document) {
+	private static double[][] getPageMargins(Document document) {
 		if (document == null) {
 			return null; // You disgust me. :(
 		}
@@ -250,7 +332,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the title of the score or {@code null} if unable to find either the {@code <work-title>} or {@code <movement-title>} tags
 	 */
-	public static String getTitle(Document document) {
+	private static String getTitle(Document document) {
 		if (document == null) {
 			return null; // Why would you do such a horrible thing? :(
 		}
@@ -278,7 +360,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the copyright information or {@code null} if unable to find
 	 */
-	public static String getCopyrightInfo(Document document) {
+	private static String getCopyrightInfo(Document document) {
 		if (document == null) {
 			return null; // Seriously? No one's impressed. :(
 		}
@@ -299,7 +381,7 @@ public final class MusicXMLCleaner {
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the number of pages. Guaranteed to be at least 1 unless the document is {@code null}, then it returns -1.
 	 */
-	public static int getNumberOfPages(Document document) {
+	private static int getNumberOfPages(Document document) {
 		if (document == null) {
 			return -1; // *eyeroll* :(
 		}
@@ -339,7 +421,7 @@ public final class MusicXMLCleaner {
 	 * If this method is unable to get any of these items, this method returns immediately and does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void addPageNumbersAndMiniTitles(Document document) {
+	private static void addPageNumbersAndMiniTitles(Document document) {
 		System.out.println("Adding page numbers and mini-titles...");
 		if (document == null) {
 			return; // Wow. Just. Wow. :(
@@ -544,7 +626,7 @@ public final class MusicXMLCleaner {
 	 * If this method is unable to find any {@code <print>} tags, this method returns immediately and does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void addSystemMeasureNumbers(Document document) {
+	private static void addSystemMeasureNumbers(Document document) {
 		System.out.println("Adding measure numbers...");
 		if (document == null) {
 			return; // Did you expect something *magical* to happen? :(
@@ -604,7 +686,7 @@ public final class MusicXMLCleaner {
 	 * If this method is unable to fetch the copyright information, this method returns immediately and does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void removeDuplicateCopyrightInfo(Document document) {
+	private static void removeDuplicateCopyrightInfo(Document document) {
 		System.out.println("Removing duplicate copyright info...");
 		if (document == null) {
 			return; // For real? :(
@@ -665,7 +747,7 @@ public final class MusicXMLCleaner {
 	 * If this method is unable to find any {@code <metronome>} tags, this method does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void correctTempoMark(Document document) {
+	private static void correctTempoMark(Document document) {
 		System.out.println("Correcting the tempo mark...");
 		if (document == null) {
 			return; // Shocking. :(
@@ -752,7 +834,7 @@ public final class MusicXMLCleaner {
 	 * If this method is unable to fetch the page margins or page width, this method returns immediately and does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void centerCreditsHorizontally(Document document) {
+	private static void centerCreditsHorizontally(Document document) {
 		System.out.println("Centering all relevant text...");
 		if (document == null) {
 			return; // Are null objects ever safe to pass into a method modifying said object? :(
@@ -810,7 +892,7 @@ public final class MusicXMLCleaner {
 	 * The method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
 	 * @param document a validated MusicXML v3.1 document
 	 */
-	public static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
+	private static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
 		System.out.println("Left aligning systems with the left margins...");
 		if (document == null) {
 			return; // Bruh. :(
@@ -932,15 +1014,17 @@ public final class MusicXMLCleaner {
 	}
 	
 	/**
-	 * Saves the document to a file. This will override the contents of the provided file.
-	 * @param document a validated MusicXML v3.1 document
+	 * Saves the last validated MusicXML document to the provided file.
+	 * This will override the contents of the provided file.
+	 * If the save is successful, the last validated MusicXML document is invalidated.
 	 * @param destinationFile the file to save to
+	 * @throws IllegalArgumentException if there was no last validated MusicXML document or the destination file is null.
 	 * @throws IOException if there is an issue opening the {@code FileOutputStream}
 	 * @throws TransformerException if there an issue creating or running the {@code Transformer}
 	 */
-	public static void writeToFile(Document document, File destinationFile) throws IOException, TransformerException {
-		if (document == null) {
-			throw new IllegalArgumentException("document provided was null"); // You are trying to save nothing? Why?! :(
+	public static void writeToFile(File destinationFile) throws IOException, TransformerException {
+		if (validatedDoc == null) {
+			throw new IllegalArgumentException("there was no document to save"); // You are trying to save nothing? Why?! :(
 		}
 		else if (destinationFile == null) {
 			throw new IllegalArgumentException("file provided was null"); // You are trying to save to nothing? Why?! :(
@@ -960,10 +1044,10 @@ public final class MusicXMLCleaner {
 		transformer.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, "-//Recordare//DTD MusicXML 3.1 Partwise//EN");
 		transformer.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, "http://www.musicxml.org/dtds/partwise.dtd");
 		// Remove "standalone" attribute from <xml> tag
-		document.setXmlStandalone(true); 
+		validatedDoc.setXmlStandalone(true); 
 		
 		// Export the data and open a file stream
-		DOMSource source = new DOMSource(document);
+		DOMSource source = new DOMSource(validatedDoc);
 		OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(destinationFile), StandardCharsets.UTF_8);
 		StreamResult result = new StreamResult(writer);
 		
@@ -972,6 +1056,9 @@ public final class MusicXMLCleaner {
 		
 		// Close the file
 		writer.close();
+		
+		// Now that the file has been saved, invalidate the document so the next run cannot use the old document.
+		validatedDoc = null;
 		
 		// Fin!
 		System.out.println("Write successful!");
