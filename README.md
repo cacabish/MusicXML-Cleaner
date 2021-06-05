@@ -19,9 +19,9 @@ Go to https://github.com/cacabish/MusicXML-Cleaner/releases and download the lat
 You can download Java [here](https://www.java.com/en/download/).
 
 ## Usage
-1. Launch the MusicXML Cleaner .jar file and either drag and drop an uncompressed MusicXML document from MuseScore onto the window or click the button and select the file to load (or do File -> Open).
+1. Launch the MusicXML Cleaner .jar file. Check the boxes corresponding to the desired operations. Then, either drag-and-drop an uncompressed MusicXML document from MuseScore onto the window or click the button and select the file to load (or do File -> Open).
 
-![Load File 1](https://www.dropbox.com/s/g763qz9yydpld4r/open.png?raw=1)
+![Load File 1](https://www.dropbox.com/s/4bb8wevcc5ain5j/open_v120.png?raw=1)
 ![Load File 2](https://www.dropbox.com/s/h9p59if9hj1e1jq/open2.png?raw=1)
 
 2. The program now works its magic! After a few seconds, the program will be prompt you to save. The default is to overwrite the old file, but you can save it as a new file.
@@ -33,7 +33,7 @@ You can download Java [here](https://www.java.com/en/download/).
 ## License
 MIT License
 
-Copyright (c) 2020 cacabish
+Copyright (c) 2020-21 cacabish
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
