@@ -200,6 +200,72 @@ public final class MusicXMLCleaner {
 	 */
 	
 	/**
+	 * Converts millimeters to inches.
+	 * @param millimeters the millimeters to convert
+	 * @return the number of inches equal to the provided millimeters
+	 */
+	private static double millimetersToInches(double millimeters) {
+		return millimeters / 25.4;
+	}
+	
+	/**
+	 * Converts inches to millimeters.
+	 * @param inches the inches to convert
+	 * @return the number of millimeters equal to the provided inches
+	 */
+	private static double inchesToMillimeters(double inches) {
+		return inches * 25.4;
+	}
+	
+	/**
+	 * Takes a MusicXML document and returns the number of millimeters per tenth.
+	 * @param document a validated MusicXML v3.1 document
+	 * @return the scaling factor of millimeters per tenth or -1 if it could not find the value
+	 */
+	private static double getMillimetersPerTenth(Document document) {
+		if (document == null) {
+			return -1; // *le sigh*
+		}
+		
+		NodeList nodeList = document.getElementsByTagName("scaling");
+		if (nodeList.getLength() == 0) {
+			// We couldn't find any <scaling> tags
+			return -1;
+		}
+		
+		// We have a scaling element. Hooray!
+		Element scalingElement = (Element) nodeList.item(0);
+		
+		// Now, we need to find the millimeters tag and the tenths tag; both MUST exist in a validated sheet.
+		NodeList childNodes = scalingElement.getChildNodes();
+		
+		double millimeters = -1;
+		double tenths = -1;
+		
+		// Iterate over the child nodes of the <scaling> tag
+		for (int i = 0; i < childNodes.getLength(); i++) {
+			Node node = childNodes.item(i);
+			if (node.getNodeType() != Node.ELEMENT_NODE)
+				continue; // If this isn't an element node, we don't care about it.
+			
+			// This is an element, so cast it!
+			Element e = (Element) node;
+			if (e.getTagName().equals("millimeters")) {
+				millimeters = Double.parseDouble(e.getTextContent()); // This is the millimeters value.
+			}
+			else if (e.getTagName().equals("tenths")) {
+				tenths = Double.parseDouble(e.getTextContent()); // This is the tenths value.
+			}
+		}
+		
+		if (millimeters < 0 || tenths < 0)
+			return -1; // Something bad happened and the tags don't exist. Abort.
+		
+		// Return the ratio
+		return millimeters / tenths;
+	}
+	
+	/**
 	 * Takes a MusicXML document and returns the page height (in units).
 	 * @param document a validated MusicXML v3.1 document
 	 * @return the page height (in units) or -1 if it could not find the value
@@ -1011,6 +1077,109 @@ public final class MusicXMLCleaner {
 		}
 		
 		System.out.println("Done left-aligning all non-indented systems and offsetting those that are indented!");
+	}
+	
+	/**
+	 * This makes any repeat texts bold. If there aren't any, then this method will fall through.
+	 * @param document a validated MusicXML v3.1 document
+	 */
+	private static void makeRepeatTextsBold(Document document) {
+		System.out.println("Making repeat texts bold...");
+		if (document == null) {
+			return; // C'mon, man... :(
+		}
+		
+		// To make sure we are dealing with actual ending texts and not just textual directions that say the words, we search for the <sound> tags first
+		NodeList soundNodes = document.getElementsByTagName("sound");
+		for (int i = 0; i < soundNodes.getLength(); i++) {
+			Element soundElement = (Element) soundNodes.item(i);
+			
+			// We're first going to check that this is inside a <direction> tag.
+			Node parentNode = soundElement.getParentNode();
+			
+			// If there is no parent tag, it's not an element, or isn't a <direction> tag, skip it.
+			if (parentNode == null || parentNode.getNodeType() != Node.ELEMENT_NODE || !((Element) parentNode).getTagName().equalsIgnoreCase("direction")) {
+				continue;
+			}
+			
+			// At this point, we can assume this sound tag is inside a <direction> tag. Great! Now, let's check that it actually pertains to repeats.
+			if (soundElement.getAttribute("dacapo").equalsIgnoreCase("yes")           // Is this a "D.C. ______"?
+					|| soundElement.getAttribute("dalsegno").equalsIgnoreCase("yes")  // Is this a "D.S. ______"?
+					|| soundElement.getAttribute("fine").equalsIgnoreCase("yes")      // Is this a "Fine"?
+					|| soundElement.getAttribute("tocoda").equalsIgnoreCase("yes"))   // Is this a "To Coda"?
+			{
+				// It passed one of tests! Fantastic! Almost done now. We just need the <words> tag.
+				NodeList wordsList = ((Element) parentNode).getElementsByTagName("words");
+				
+				for (int j = 0; j < wordsList.getLength(); j++) {
+					Element wordElement = (Element) wordsList.item(j);
+					
+					// Set the font-weight to bold.
+					wordElement.setAttribute("font-weight", "bold");
+				}
+				
+			}
+			else {
+				// It's not something we're looking for. Continue.
+				continue;
+			}
+		}
+		
+		System.out.println("Successfully made repeat texts bold!");
+	}
+	
+	/**
+	 * This adds periods to the end of every numbered ending included in a volta.
+	 * If there are no voltas, then this method does nothing.
+	 * @param document a validated MusicXML v3.1 document
+	 */
+	private static void correctVoltaTexts(Document document) {
+		System.out.println("Adding periods after volta numbers...");
+		if (document == null) {
+			return; // Null, null, always null... :(
+		}
+		
+		// Fetch all the <ending> tags
+		NodeList endingNodes = document.getElementsByTagName("ending");
+		for (int i = 0; i < endingNodes.getLength(); i++) {
+			Element endingElement = (Element) endingNodes.item(i);
+			
+			// Fetch the number attribute
+			String numberAttribute = endingElement.getAttribute("number");
+			
+			// Put this in a StringBuilder so it's easy to insert characters.
+			StringBuilder builder = new StringBuilder(numberAttribute);
+			
+			// A flag to keep track of whether we have seen a digit or not.
+			boolean hasSeenDigit = false;
+			// Iterate over the string backwards so indices remain constant.
+			for (int j = numberAttribute.length() - 1; j >= 0; j--) {
+				char c = numberAttribute.charAt(j);
+				if (Character.isDigit(c)) {
+					// We are looking at a digit
+					// If we haven't seen a digit whilst scanning rightwards, this must be the end of the number so add a period.
+					if (!hasSeenDigit) {
+						// However, for forwards compatibility, if the character after is actually a period, then don't add it.
+						// To do this, we check so that if we're at the end of the string or it there isn't a period after this character, then insert a period.
+						if (j + 1 >= numberAttribute.length() || numberAttribute.charAt(j + 1) != '.') {
+							builder.insert(j + 1, '.');
+						}
+					}
+					
+					// Update the flag because we have seen a digit.
+					hasSeenDigit = true;
+				}
+				else {
+					// This isn't a digit, so we have no longer seen a digit
+					hasSeenDigit = false;
+				}
+			}
+			
+			// Set this as the <ending> tag's content.
+			endingElement.setTextContent(builder.toString());
+		}
+		
+		System.out.println("Successfully added periods after volta numbers!");
 	}
 	
 	/**
