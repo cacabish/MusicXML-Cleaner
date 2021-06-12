@@ -34,7 +34,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version 1.2.0
+ * @version 1.2.1
  *
  */
 public final class MusicXMLCleaner {
@@ -1085,9 +1085,8 @@ public final class MusicXMLCleaner {
 				
 				// Now, check for an approximate zero. Since we are handling floating-point numbers, we use a threshold epsilon.
 				if (Math.abs(newValue) < epsilon) {
-					// This tag is effectively a 0 margin, so delete the <system-margins> tag and its two subtags.
-					// Delete the element.
-					systemMarginsElement.getParentNode().removeChild(systemMarginsElement);
+					// This tag is effectively a 0 margin, so set the <left-margin> to 0.00.
+					leftMarginsElement.setTextContent("0.00");
 				}
 				else {
 					// This system is indented some, so we just change the indentation.
