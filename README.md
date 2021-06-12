@@ -58,4 +58,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ### A Word from the Developer
-This program is not intended to be a strictly formal piece of software, nor follow standard industry protocols. This is intended as a fun, personal project for aiding those who use MuseScore when arranging for [www.NinSheetMusic.org](https://www.NinSheetMusic.org/), which includes myself, whilst keeping it open source for other contributors to further its development as new bugs are discovered and as new version of MuseScore are released. Thanks! :D
+This program is not intended to be a strictly formal piece of software, nor follow standard industry protocols. This is intended as a fun, personal project for aiding those who use MuseScore when arranging for [www.NinSheetMusic.org](https://www.NinSheetMusic.org/), which includes myself, whilst keeping it open source for other contributors to further its development as new bugs are discovered and as new versions of MuseScore are released. Thanks! :D
