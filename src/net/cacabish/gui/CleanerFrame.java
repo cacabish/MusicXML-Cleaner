@@ -1,6 +1,7 @@
 package net.cacabish.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
@@ -11,26 +12,28 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.List;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.FileFilter;
 
 import net.cacabish.MusicXMLCleaner;
-
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JSeparator;
-import javax.swing.JCheckBox;
-import javax.swing.BoxLayout;
-import javax.swing.border.TitledBorder;
-import javax.swing.border.EtchedBorder;
 
 /**
  * The main GUI for processing MusicXML files.
@@ -119,8 +122,7 @@ public class CleanerFrame extends JFrame {
 		 */
 		setTitle("MusicXML Cleaner v" + VERSION + " for MuseScore v" + MUSESCORE_VERSION);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 525, 350); // Set initial size parameters
-		setResizable(false); // No need to resize
+		setBounds(100, 100, 525, 400); // Set initial size parameters
 		setLocationRelativeTo(null); // Centers to the screen
 		
 		
@@ -187,7 +189,7 @@ public class CleanerFrame extends JFrame {
 							+ System.lineSeparator() +
 						"You may override the old file or create a new one."
 							+ System.lineSeparator() + System.lineSeparator() +
-						"That's it! You can now import into Finale with many annoying bugs fixed!"
+						"That's it! You can now import into Finale with many annoying bugs fixed! :D"
 				, "How To Use", JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
@@ -201,14 +203,7 @@ public class CleanerFrame extends JFrame {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JOptionPane.showMessageDialog(contentPane, 
-						"A tool for NinSheetMusic.org arrangers who use MuseScore."
-								+ System.lineSeparator() + System.lineSeparator() +
-						"Copyright (c) 2020-21 cacabish" 
-								+ System.lineSeparator() +
-						"MusicXML 3.1 by W3C Music Notation Community Group"
-								+ System.lineSeparator() +
-						"Published under the MIT License"
+				JOptionPane.showMessageDialog(contentPane, new AboutPanel()
 				, "About", JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
@@ -261,6 +256,7 @@ public class CleanerFrame extends JFrame {
 		
 		// Open File Button
 		JButton btnOpenFile = new JButton("Choose .musicxml File...");
+		btnOpenFile.setToolTipText("Opens a file to be processed.");
 		btnOpenFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showFileChooserAndLoad();
@@ -283,6 +279,9 @@ public class CleanerFrame extends JFrame {
 		contentPane.add(operationsPanel, BorderLayout.WEST);
 		operationsPanel.setLayout(new BoxLayout(operationsPanel, BoxLayout.Y_AXIS));
 		
+		/*
+		 * Add mini-titles and page numbers checkbox
+		 */
 		JCheckBox chckbxAddMiniTitles = new JCheckBox("Add Mini-titles & Page Numbers");
 		chckbxAddMiniTitles.setToolTipText("If checked, the program will add mini-title and page numbers to pages 2+.");
 		chckbxAddMiniTitles.setSelected(MusicXMLCleaner.addMiniTitlesAndPageNumbers); // Set the default
@@ -296,6 +295,9 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxAddMiniTitles);
 		
+		/*
+		 * Add system measure numbers checkbox
+		 */
 		JCheckBox chckbxAddSystemMeasureNumbers = new JCheckBox("Add System Measure Numbers");
 		chckbxAddSystemMeasureNumbers.setToolTipText("If checked, the program will add the tag that creates system measure numbers.");
 		chckbxAddSystemMeasureNumbers.setSelected(MusicXMLCleaner.addSystemMeasureNumbers); // Set the default
@@ -309,6 +311,9 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxAddSystemMeasureNumbers);
 		
+		/*
+		 * Remove extraneous copyright checkbox
+		 */
 		JCheckBox chckbxRemoveExtraneousCopyright = new JCheckBox("Remove Extraneous Copyright");
 		chckbxRemoveExtraneousCopyright.setToolTipText("If checked, the program will remove copyright information from pages 2+. "
 				+ "It will also correct the formatting of the copyright information on page 1.");
@@ -323,6 +328,9 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxRemoveExtraneousCopyright);
 		
+		/*
+		 * Correct tempo marking checkbox
+		 */
 		JCheckBox chckbxCorrectTempoMarking = new JCheckBox("Correct Tempo Marking");
 		chckbxCorrectTempoMarking.setToolTipText("If checked, the program will make necessary adjustments so tempo directional texts "
 				+ "and their associated metrnonome marks are one object.");
@@ -337,6 +345,9 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxCorrectTempoMarking);
 		
+		/*
+		 * Center credits horizontally checkbox
+		 */
 		JCheckBox chckbxCenterCreditsHorizontally = new JCheckBox("Center Credits Horizontally");
 		chckbxCenterCreditsHorizontally.setToolTipText("<html>If checked, the program will horizontally center any credit, "
 				+ "that is set as horizontally aligned, with respect to the repsective page's margins.</html>");
@@ -351,6 +362,9 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxCenterCreditsHorizontally);
 		
+		/*
+		 * Align systems checkbox
+		 */
 		JCheckBox chckbxAlignSystemsWithLeftMargin = new JCheckBox("Align Systems w/ Left Margin");
 		chckbxAlignSystemsWithLeftMargin.setToolTipText("<html>If checked, the program will reduce the system margins of the left-most systems so that they align with the left margin."
 				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved.</html>");
@@ -364,6 +378,55 @@ public class CleanerFrame extends JFrame {
 			}
 		});
 		operationsPanel.add(chckbxAlignSystemsWithLeftMargin);
+		
+		/*
+		 * Make repeat text bold checkbox
+		 */
+		JCheckBox chckbxMakeRepeatTexts = new JCheckBox("Make Repeat Texts Bold");
+		chckbxMakeRepeatTexts.setToolTipText("<html>If checked, the program will make any ending texts like <tt>D.C. al Coda</tt> and <tt>Fine</tt> bolded.</html>");
+		chckbxMakeRepeatTexts.setSelected(MusicXMLCleaner.makeRepeatTextsBold); // Set the default
+		chckbxMakeRepeatTexts.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.makeRepeatTextsBold = chckbxMakeRepeatTexts.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxMakeRepeatTexts);
+		
+		/*
+		 * Add periods to voltas checkbox
+		 */
+		JCheckBox chckbxAddPeriodsToVoltas = new JCheckBox("Add Periods to Ending Texts");
+		chckbxAddPeriodsToVoltas.setToolTipText("<html>If checked, the program will add periods to the end of numbers in ending texts.</html>");
+		chckbxAddPeriodsToVoltas.setSelected(MusicXMLCleaner.addPeriodsToVoltaTexts); // Set the default
+		chckbxAddPeriodsToVoltas.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.addPeriodsToVoltaTexts = chckbxAddPeriodsToVoltas.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxAddPeriodsToVoltas);
+		
+		/*
+		 * Add swing 8ths wherever there is a "Swing" direction checkbox
+		 */
+		JCheckBox chckbxAddSwingths8ths = new JCheckBox("<html>Add Swing 8ths wherever <br>a \"Swing\" Direction</html>");
+		chckbxAddSwingths8ths.setToolTipText("<html>If checked, the program will add a symbol that will turn on swung 8th notes "
+				+ "<br>wherever a direction (i.e Staff Text) is placed labeled \"Swing\".</html>");
+		chckbxAddSwingths8ths.setSelected(MusicXMLCleaner.addSwing8thsWhereSwingDirection); // Set the default
+		chckbxAddSwingths8ths.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.addSwing8thsWhereSwingDirection = chckbxAddSwingths8ths.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxAddSwingths8ths);
 		
 		
 		
@@ -495,6 +558,60 @@ public class CleanerFrame extends JFrame {
 			System.out.println("Save cancelled.");
 			return;
 		}
+	}
+	
+	/**
+	 * A nested class that displays information when "About" is selected.
+	 * @author cacabish
+	 *
+	 */
+	private static class AboutPanel extends JEditorPane {
+		
+		/**
+		 * This thing. Yeah, this thing.
+		 */
+		private static final long serialVersionUID = 6582724507797400236L;
+
+		/**
+		 * The constructor.
+		 */
+		public AboutPanel() {
+			super("text/html", 
+					"<html>"
+					+ "<body style='font-family: Tahoma; font-size: 14;'>"
+					+ "A tool for <a href='http://www.ninsheetmusic.org/'>NinSheetMusic.org</a> arrangers who use MuseScore."
+					+ "<br><br>"
+					+ "GitHub Repo: <a href='https://github.com/cacabish/MusicXML-Cleaner'>https://github.com/cacabish/MusicXML-Cleaner</a>"
+					+ "<br><br>"
+					+ "Copyright (c) 2020-21 cacabish" 
+					+ "<br>"
+					+ "MusicXML 3.1 by W3C Music Notation Community Group"
+					+ "<br>"
+					+ "Published under the MIT License"
+					+ "</body>"
+					+ "</html>"
+				);
+			
+			// This adds a listener so that when a link is clicked, it attempts to browse that link.
+			addHyperlinkListener(new HyperlinkListener() {
+				
+				@Override
+				public void hyperlinkUpdate(HyperlinkEvent e) {
+					if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+						try {
+							if (e.getURL() != null) {
+								Desktop.getDesktop().browse(e.getURL().toURI());
+							}
+						} catch (Exception e1) {
+							// Do nothing. This is all just extra anyway.
+						}
+					}
+				}
+			});
+			
+			setEditable(false); // We don't want this to be editable
+		}
+		
 	}
 
 }
