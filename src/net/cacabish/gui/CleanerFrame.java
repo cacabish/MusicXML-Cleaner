@@ -45,7 +45,7 @@ public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "1.2.0";
+	public static final String VERSION = "1.2.1";
 	public static final String MUSESCORE_VERSION = "3.6.2";
 
 	private final JPanel contentPane;
