@@ -38,7 +38,7 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version 1.2.0
+ * @version 1.2.1
  *
  */
 public class CleanerFrame extends JFrame {
