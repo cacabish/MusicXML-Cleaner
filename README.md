@@ -14,6 +14,7 @@ This program does the following *(any of the following can be enabled or disable
 * Makes ending texts like D.C. al Coda bold
 * Adds periods to the ends of numbers in ending texts (AKA voltas)
 * Adds swing 8th notes wherever there is a direction that says "Swing"
+* Replaces uses of the fonts Edwin or FreeSerif with Times New Roman
 
 ## Installation
 Go to https://github.com/cacabish/MusicXML-Cleaner/releases and download the latest .jar file corresponding to the desired version. Do NOT download the source code. There is no installation required, simply double click to execute.

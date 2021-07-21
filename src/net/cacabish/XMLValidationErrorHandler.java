@@ -7,7 +7,7 @@ import org.xml.sax.SAXParseException;
 /**
  * A helper class which servers as the container for handling any errors related to validating an XML document.
  * @author cacabish
- * @version 1.0.0
+ * @version v1.0.0
  *
  */
 public class XMLValidationErrorHandler implements ErrorHandler {

@@ -16,6 +16,10 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -34,7 +38,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version 1.2.1
+ * @version v1.3.0
  *
  */
 public final class MusicXMLCleaner {
@@ -90,6 +94,11 @@ public final class MusicXMLCleaner {
 	 * Default = true.
 	 */
 	public static boolean addSwing8thsWhereSwingDirection = true;
+	/**
+	 * A boolean flag signaling whether to replace any font instances of "Edwin" or "FreeSerif" with "Times New Roman", when an XML is cleaned.
+	 * Default = true.
+	 */
+	public static boolean replaceEdwinAndFreeSerifWithTimesNewRoman = true;
 
 
 	/*
@@ -108,6 +117,11 @@ public final class MusicXMLCleaner {
 	 */
 	private static final DocumentBuilderFactory DBF;
 	
+	/**
+	 * The XPath object to use for XPATH querying.
+	 */
+	private static final XPath XPATH;
+	
 	
 	
 	/**
@@ -118,6 +132,8 @@ public final class MusicXMLCleaner {
 		DBF = DocumentBuilderFactory.newInstance();
 		DBF.setValidating(true);
 		DBF.setIgnoringElementContentWhitespace(true);
+		
+		XPATH = XPathFactory.newInstance().newXPath();
 	}
 	
 	/**
@@ -157,6 +173,8 @@ public final class MusicXMLCleaner {
 			MusicXMLCleaner.addPeriodsToVoltaTexts(validatedDoc);
 		if (addSwing8thsWhereSwingDirection)
 			MusicXMLCleaner.addSwing8thsWhereSwingDirection(validatedDoc);
+		if (replaceEdwinAndFreeSerifWithTimesNewRoman)
+			MusicXMLCleaner.replaceEdwinAndFreeSerifWithTimesNewRoman(validatedDoc);
 		
 		System.out.println("===== End New Cleaning Job =====");
 	}
@@ -1402,6 +1420,57 @@ public final class MusicXMLCleaner {
 		}
 		
 		System.out.println("Finished adding swing 8ths where there is a \"Swing\" direction!");
+	}
+	
+	/**
+	 * This method will check for all tags that contain either 
+	 * 	{@code font-family="Edwin"} or {@code font-family="FreeSerif"} 
+	 * and replace them with {@code font-family="Times New Roman"}.
+	 * If the XPath query fails, this method aborts.
+	 * @param document a validated MusicXML v3.1 document
+	 */
+	private static void replaceEdwinAndFreeSerifWithTimesNewRoman(Document document) {
+		System.out.println("Replacing FreeSerif and Edwin with Times New Roman...");
+		if (document == null) {
+			return; // La de da... :(
+		}
+		
+		try {
+			// This XPath expression will return all elements that contain a "font-family" attribute.
+			String xPathExpression = "//*[@font-family]";
+			NodeList nodeList = (NodeList) XPATH.compile(xPathExpression).evaluate(document, XPathConstants.NODESET);
+			
+			// Iterate over the list of candidates
+			for (int i = 0; i < nodeList.getLength(); i++) {
+				Node node = nodeList.item(i);
+				
+				// Just in case I've picked up something I shouldn't have, check that this is an element node
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
+					// Great! Go ahead and cast it.
+					Element element = (Element) node;
+					
+					// Get the "font-family" attribute's value
+					String oldValue = element.getAttribute("font-family");
+					
+					// Replace FreeSerif (case insensitive) with Times New Roman
+					String newValue = oldValue.replaceAll("(?i)FreeSerif", "Times New Roman");
+					// Replace Edwin (case insensitive) with Times New Roman
+					newValue = newValue.replaceAll("(?i)Edwin", "Times New Roman");
+					
+					// Set the updated "font-family" attribute's value
+					// Note: since we only replaced what we needed to, anything not matching what we replaced should've been left alone.
+					element.setAttribute("font-family", newValue);
+				}
+			}
+			
+		} catch (XPathExpressionException e) {
+			// Bad stuff happened. Abort.
+			System.out.println("An error occurred while trying to replace the fonts: " + e.getMessage());
+			return;
+		}
+		
+		// Done!
+		System.out.println("Done replacing FreeSerif and Edwin with Times New Roman!");
 	}
 	
 	/**

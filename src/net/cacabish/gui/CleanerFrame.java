@@ -9,9 +9,15 @@ import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -24,6 +30,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
@@ -38,15 +45,15 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version 1.2.1
+ * @version v1.3.0
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "1.2.1";
-	public static final String MUSESCORE_VERSION = "3.6.2";
+	public static final String VERSION = "v1.3.0";
+	public static final String MUSESCORE_VERSION = "v3.6.2";
 
 	private final JPanel contentPane;
 	
@@ -120,9 +127,9 @@ public class CleanerFrame extends JFrame {
 		 * ===== BASIC SETTINGS =====
 		 * ==========================
 		 */
-		setTitle("MusicXML Cleaner v" + VERSION + " for MuseScore v" + MUSESCORE_VERSION);
+		setTitle("MusicXML Cleaner " + VERSION + " for MuseScore " + MUSESCORE_VERSION);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 525, 400); // Set initial size parameters
+		setBounds(100, 100, 525, 425); // Set initial size parameters
 		setLocationRelativeTo(null); // Centers to the screen
 		
 		
@@ -204,10 +211,14 @@ public class CleanerFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JOptionPane.showMessageDialog(contentPane, new AboutPanel()
-				, "About", JOptionPane.INFORMATION_MESSAGE);
+				, "About", JOptionPane.PLAIN_MESSAGE);
 			}
 		});
 		menuHelp.add(menuItemAbout);
+		
+		JButton newVersionButton = new JButton("New Version Available!");
+		newVersionButton.setVisible(false);
+		menuBar.add(newVersionButton);
 
 		
 		
@@ -273,10 +284,10 @@ public class CleanerFrame extends JFrame {
 		 */
 		
 		JPanel operationsPanel = new JPanel();
-		operationsPanel.setBorder(
-				new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Operations to Perform", TitledBorder.LEADING, TitledBorder.TOP, null, null)
-				);
-		contentPane.add(operationsPanel, BorderLayout.WEST);
+//		operationsPanel.setBorder(
+//				new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Operations to Perform", TitledBorder.LEADING, TitledBorder.TOP, null, null)
+//				);
+//		contentPane.add(operationsPanel, BorderLayout.WEST);
 		operationsPanel.setLayout(new BoxLayout(operationsPanel, BoxLayout.Y_AXIS));
 		
 		/*
@@ -428,7 +439,118 @@ public class CleanerFrame extends JFrame {
 		});
 		operationsPanel.add(chckbxAddSwingths8ths);
 		
+		/*
+		 * Replace uses of the fonts Edwin and FreeSerif with Times New Roman
+		 */
+		JCheckBox chckbxReplaceFonts= new JCheckBox("<html>Replace uses of Edwin and"
+				+ "<br>FreeSerif with Times New Roman </html>");
+		chckbxReplaceFonts.setToolTipText("<html>If checked, the program will set the font to Times New Roman for any"
+				+ "<br>element that uses Edwin or FreeSerif fonts.</html>");
+		chckbxReplaceFonts.setSelected(MusicXMLCleaner.replaceEdwinAndFreeSerifWithTimesNewRoman); // Set the default
+		chckbxReplaceFonts.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.replaceEdwinAndFreeSerifWithTimesNewRoman = chckbxReplaceFonts.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxReplaceFonts);
 		
+		
+		
+		// House all the operations in a scroll pane, so as to prevent the need from expanding the window size
+		JScrollPane scrollPane = new JScrollPane(operationsPanel);
+		scrollPane.setBorder(
+					new TitledBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null), "Operations to Perform", TitledBorder.LEADING, TitledBorder.TOP, null, null)
+				);
+		contentPane.add(scrollPane, BorderLayout.WEST);
+		
+		
+		
+		// We want to check if there is a new version available.
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					System.out.println("Checking for latest version...");
+					URL url = new URL("https://api.github.com/repos/cacabish/MusicXML-Cleaner/releases/latest");
+					HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+					connection.setRequestMethod("GET");
+					connection.setConnectTimeout(5000); // Timeout after 5 seconds
+					connection.setReadTimeout(5000); // Timeout after 5 seconds
+					
+					int status = connection.getResponseCode();
+					if (status == 200) {
+						// Open a buffered reader to read the input stream
+						BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+						
+						// Variable to store the read
+						String input = "";
+						// The StringBuilder to build the string with
+						StringBuilder stringBuilder = new StringBuilder();
+						
+						// Read all the input lines
+						while ((input = bufferedReader.readLine()) != null) {
+						    stringBuilder.append(input);
+						}
+						
+						// CLose the reader
+						bufferedReader.close();
+						
+						// Find the JSON string(s) we're interested in
+						String outputString = stringBuilder.toString();
+
+						// Regex to get the tag name.
+						Matcher tagMatcher = Pattern.compile("\"tag_name\": *\"(.*?)\"").matcher(outputString);
+						
+						// Search for a max in the string
+						if (tagMatcher.find()) {
+							// The tag is between the parentheses
+							String versionTag = tagMatcher.group(1);
+							
+							if (versionTag.compareTo(VERSION) > 0) {
+								// There is a new version! Make the button appear and construct the window to appear!
+								System.out.println("New version found: " + versionTag);
+								EventQueue.invokeLater(new Runnable() {
+									
+									@Override
+									public void run() {
+										// Create the action handler that will process when a person clicks the button.
+										newVersionButton.addActionListener(new ActionListener() {
+											
+											@Override
+											public void actionPerformed(ActionEvent e) {
+												JOptionPane.showMessageDialog(contentPane, new NewVersionPanel(versionTag), "New Version Available!", JOptionPane.PLAIN_MESSAGE);
+												
+											}
+										});
+										// Make the button visible
+										newVersionButton.setVisible(true);
+									}
+								});
+							}
+							else {
+								// No new version.
+								System.out.println("Current version is up-to-date.");
+								return;
+							}
+							
+						}
+					}
+					else {
+						System.out.println("Got bad response code: " + status);
+					}
+					
+					
+				} catch (Exception e) {
+					// Oh well, we won't check the version.
+					System.out.println("Version check failed: " + e.getMessage());
+				}
+				
+			}
+		}).start();
 		
 		
 		
@@ -563,7 +685,6 @@ public class CleanerFrame extends JFrame {
 	/**
 	 * A nested class that displays information when "About" is selected.
 	 * @author cacabish
-	 *
 	 */
 	private static class AboutPanel extends JEditorPane {
 		
@@ -579,7 +700,9 @@ public class CleanerFrame extends JFrame {
 			super("text/html", 
 					"<html>"
 					+ "<body style='font-family: Tahoma; font-size: 14;'>"
-					+ "A tool for <a href='http://www.ninsheetmusic.org/'>NinSheetMusic.org</a> arrangers who use MuseScore."
+					+ "<b>MusicXML Cleaner " + VERSION + " for MuseScore " + MUSESCORE_VERSION + "</b>"
+					+ "<br>"
+					+ "<i>A tool for <a href='http://www.ninsheetmusic.org/'>NinSheetMusic.org</a> arrangers who use MuseScore.</i>"
 					+ "<br><br>"
 					+ "GitHub Repo: <a href='https://github.com/cacabish/MusicXML-Cleaner'>https://github.com/cacabish/MusicXML-Cleaner</a>"
 					+ "<br><br>"
@@ -588,6 +711,58 @@ public class CleanerFrame extends JFrame {
 					+ "MusicXML 3.1 by W3C Music Notation Community Group"
 					+ "<br>"
 					+ "Published under the MIT License"
+					+ "</body>"
+					+ "</html>"
+				);
+			
+			// This adds a listener so that when a link is clicked, it attempts to browse that link.
+			addHyperlinkListener(new HyperlinkListener() {
+				
+				@Override
+				public void hyperlinkUpdate(HyperlinkEvent e) {
+					if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+						try {
+							if (e.getURL() != null) {
+								Desktop.getDesktop().browse(e.getURL().toURI());
+							}
+						} catch (Exception e1) {
+							// Do nothing. This is all just extra anyway.
+						}
+					}
+				}
+			});
+			
+			setEditable(false); // We don't want this to be editable
+		}
+		
+	}
+	
+	
+	/**
+	 * A nested class that displays information when a new version has been found.
+	 * @author cacabish
+	 */
+	private static class NewVersionPanel extends JEditorPane {
+		
+		/**
+		 * This thing. Yeah, this thing.
+		 */
+		private static final long serialVersionUID = 6582724507797400236L;
+
+		/**
+		 * The constructor.
+		 */
+		public NewVersionPanel(String newVersion) {
+			super("text/html", 
+					"<html>"
+					+ "<body style='font-family: Tahoma; font-size: 14;'>"
+					+ "A new version is available!"
+					+ "<br><br>"
+					+ "<b>Current Version:</b> " + VERSION
+					+ "<br>"
+					+ "<b>New Version:</b> " + newVersion
+					+ "<br><br>"
+					+ "<a href=https://github.com/cacabish/MusicXML-Cleaner/releases/latest>[Download]</a>"
 					+ "</body>"
 					+ "</html>"
 				);
