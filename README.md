@@ -25,7 +25,7 @@ You can download Java [here](https://www.java.com/en/download/).
 ## Usage
 1. Launch the MusicXML Cleaner .jar file. Check or uncheck the boxes corresponding to the desired operations. Then, either drag-and-drop an uncompressed MusicXML document from MuseScore onto the window or click the button and select the file to load (or do File -> Open).
 
-![Load File 1](https://www.dropbox.com/s/4bb8wevcc5ain5j/open_v120.png?raw=1)
+![Load File 1](https://www.dropbox.com/s/jokdzhnfjby3txl/open1.png?raw=1)
 
 ![Load File 2](https://www.dropbox.com/s/h9p59if9hj1e1jq/open2.png?raw=1)
 
