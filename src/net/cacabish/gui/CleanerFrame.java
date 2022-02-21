@@ -45,7 +45,7 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version v1.3.0
+ * @version v1.3.1
  *
  */
 public class CleanerFrame extends JFrame {
@@ -378,7 +378,8 @@ public class CleanerFrame extends JFrame {
 		 */
 		JCheckBox chckbxAlignSystemsWithLeftMargin = new JCheckBox("Align Systems w/ Left Margin");
 		chckbxAlignSystemsWithLeftMargin.setToolTipText("<html>If checked, the program will reduce the system margins of the left-most systems so that they align with the left margin."
-				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved.</html>");
+				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved."
+				+ "<br>If there is only one system in the sheet, this doesn't do anything.</html>");
 		chckbxAlignSystemsWithLeftMargin.setSelected(MusicXMLCleaner.offsetSystemMargins); // Set the default
 		chckbxAlignSystemsWithLeftMargin.addActionListener(new ActionListener() {
 			

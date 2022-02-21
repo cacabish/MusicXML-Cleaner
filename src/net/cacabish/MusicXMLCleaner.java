@@ -39,7 +39,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.3.0
+ * @version v1.3.1
  *
  */
 public final class MusicXMLCleaner {
@@ -998,7 +998,8 @@ public final class MusicXMLCleaner {
 	 * Offsets each system's left margin by the smallest left margin found. 
 	 * If the offset renders the new margin relatively close to 0 (within some epsilon), then the <system-margins> tag is deleted.
 	 * <br><br>
-	 * The method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
+	 * This method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
+	 * This method will also do nothing if there is only system in the entire score.  
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	private static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
