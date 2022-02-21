@@ -706,7 +706,7 @@ public class CleanerFrame extends JFrame {
 					+ "<br><br>"
 					+ "GitHub Repo: <a href='https://github.com/cacabish/MusicXML-Cleaner'>https://github.com/cacabish/MusicXML-Cleaner</a>"
 					+ "<br><br>"
-					+ "Copyright (c) 2020-21 cacabish" 
+					+ "Copyright (c) 2020-22 cacabish" 
 					+ "<br>"
 					+ "MusicXML 3.1 by W3C Music Notation Community Group"
 					+ "<br>"
