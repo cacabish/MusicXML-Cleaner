@@ -45,14 +45,14 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version v1.3.0
+ * @version v1.3.1
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "v1.3.0";
+	public static final String VERSION = "v1.3.1";
 	public static final String MUSESCORE_VERSION = "v3.6.2";
 
 	private final JPanel contentPane;
@@ -378,7 +378,8 @@ public class CleanerFrame extends JFrame {
 		 */
 		JCheckBox chckbxAlignSystemsWithLeftMargin = new JCheckBox("Align Systems w/ Left Margin");
 		chckbxAlignSystemsWithLeftMargin.setToolTipText("<html>If checked, the program will reduce the system margins of the left-most systems so that they align with the left margin."
-				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved.</html>");
+				+ "<br>The first system's margin is also reduced by the same amount so that the relative positioning of the systems is preserved."
+				+ "<br>If there is only one system in the sheet, this doesn't do anything.</html>");
 		chckbxAlignSystemsWithLeftMargin.setSelected(MusicXMLCleaner.offsetSystemMargins); // Set the default
 		chckbxAlignSystemsWithLeftMargin.addActionListener(new ActionListener() {
 			
@@ -706,7 +707,7 @@ public class CleanerFrame extends JFrame {
 					+ "<br><br>"
 					+ "GitHub Repo: <a href='https://github.com/cacabish/MusicXML-Cleaner'>https://github.com/cacabish/MusicXML-Cleaner</a>"
 					+ "<br><br>"
-					+ "Copyright (c) 2020-21 cacabish" 
+					+ "Copyright (c) 2020-22 cacabish" 
 					+ "<br>"
 					+ "MusicXML 3.1 by W3C Music Notation Community Group"
 					+ "<br>"

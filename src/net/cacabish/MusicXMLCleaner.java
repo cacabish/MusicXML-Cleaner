@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -38,7 +39,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.3.0
+ * @version v1.3.1
  *
  */
 public final class MusicXMLCleaner {
@@ -605,8 +606,8 @@ public final class MusicXMLCleaner {
 			
 			if (content.equals(pageAttribute)) {
 				// This is a page number. Ensure the formatting attributes.
-				candidateTag.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
-				candidateTag.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				candidateTag.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
+				candidateTag.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				candidateTag.setAttribute("justify", isEvenPage ? "left" : "right");
 				candidateTag.setAttribute("valign", "top");
 				candidateTag.setAttribute("font-size", "14");
@@ -617,8 +618,8 @@ public final class MusicXMLCleaner {
 			}
 			else if (content.equals(title)) {
 				// This is a mini title. Ensure the formatting attributes.
-				candidateTag.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
-				candidateTag.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				candidateTag.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
+				candidateTag.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				candidateTag.setAttribute("justify", "center");
 				candidateTag.setAttribute("valign", "top");
 				candidateTag.setAttribute("font-size", "12");
@@ -674,8 +675,8 @@ public final class MusicXMLCleaner {
 				pageNumberCreditWords.setTextContent(pageNumberText); // Set the text equal to the page number
 				
 				// Set all the attributes
-				pageNumberCreditWords.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
-				pageNumberCreditWords.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				pageNumberCreditWords.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
+				pageNumberCreditWords.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				pageNumberCreditWords.setAttribute("justify", isEvenPage ? "left" : "right");
 				pageNumberCreditWords.setAttribute("valign", "top");
 				pageNumberCreditWords.setAttribute("font-size", "14");
@@ -710,8 +711,8 @@ public final class MusicXMLCleaner {
 				pageNumberCreditWords.setTextContent(title); // Set the text equal to the page number
 				
 				// Set all the attributes
-				pageNumberCreditWords.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
-				pageNumberCreditWords.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				pageNumberCreditWords.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
+				pageNumberCreditWords.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				pageNumberCreditWords.setAttribute("justify", "center");
 				pageNumberCreditWords.setAttribute("valign", "top");
 				pageNumberCreditWords.setAttribute("font-size", "12");
@@ -985,7 +986,7 @@ public final class MusicXMLCleaner {
 				// Check if this credit needs to be centered.
 				if (creditWordsElement.getAttribute("justify").equals("center") || creditWordsElement.getAttribute("halign").equals("center")) {
 					// Center it!
-					creditWordsElement.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
+					creditWordsElement.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
 				}
 			}
 		}
@@ -997,7 +998,8 @@ public final class MusicXMLCleaner {
 	 * Offsets each system's left margin by the smallest left margin found. 
 	 * If the offset renders the new margin relatively close to 0 (within some epsilon), then the <system-margins> tag is deleted.
 	 * <br><br>
-	 * The method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
+	 * This method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
+	 * This method will also do nothing if there is only system in the entire score.  
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	private static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
@@ -1008,6 +1010,13 @@ public final class MusicXMLCleaner {
 		
 		// Fetch all the <system-layout> tags
 		NodeList allSystemLayoutTags = document.getElementsByTagName("system-layout");
+		
+		// Check how many <system-layout> tags we have
+		if (allSystemLayoutTags.getLength() <= 1) {
+			// In this case, we either don't have enough relative information to slide all the systems, so we'll just do nothing
+			// NOTE: we could use some standard default value in this case, but for now, I'll just do nothing.
+			return;
+		}
 		
 		// We need to find the minimum left-margin value
 		double minimumValue = Double.MAX_VALUE;
@@ -1108,7 +1117,7 @@ public final class MusicXMLCleaner {
 				}
 				else {
 					// This system is indented some, so we just change the indentation.
-					leftMarginsElement.setTextContent(String.format("%.2f", newValue)); // Since MuseScore uses 2 decimal places of accuracy, so will I.
+					leftMarginsElement.setTextContent(String.format(Locale.US, "%.2f", newValue)); // Since MuseScore uses 2 decimal places of accuracy, so will I.
 				}
 			}
 			catch (NumberFormatException e) {
