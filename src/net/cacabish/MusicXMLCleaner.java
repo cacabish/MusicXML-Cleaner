@@ -1010,6 +1010,13 @@ public final class MusicXMLCleaner {
 		// Fetch all the <system-layout> tags
 		NodeList allSystemLayoutTags = document.getElementsByTagName("system-layout");
 		
+		// Check how many <system-layout> tags we have
+		if (allSystemLayoutTags.getLength() <= 1) {
+			// In this case, we either don't have enough relative information to slide all the systems, so we'll just do nothing
+			// NOTE: we could use some standard default value in this case, but for now, I'll just do nothing.
+			return;
+		}
+		
 		// We need to find the minimum left-margin value
 		double minimumValue = Double.MAX_VALUE;
 		
