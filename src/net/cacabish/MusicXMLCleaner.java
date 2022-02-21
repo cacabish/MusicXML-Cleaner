@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -605,8 +606,8 @@ public final class MusicXMLCleaner {
 			
 			if (content.equals(pageAttribute)) {
 				// This is a page number. Ensure the formatting attributes.
-				candidateTag.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
-				candidateTag.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				candidateTag.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
+				candidateTag.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				candidateTag.setAttribute("justify", isEvenPage ? "left" : "right");
 				candidateTag.setAttribute("valign", "top");
 				candidateTag.setAttribute("font-size", "14");
@@ -617,8 +618,8 @@ public final class MusicXMLCleaner {
 			}
 			else if (content.equals(title)) {
 				// This is a mini title. Ensure the formatting attributes.
-				candidateTag.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
-				candidateTag.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				candidateTag.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
+				candidateTag.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				candidateTag.setAttribute("justify", "center");
 				candidateTag.setAttribute("valign", "top");
 				candidateTag.setAttribute("font-size", "12");
@@ -674,8 +675,8 @@ public final class MusicXMLCleaner {
 				pageNumberCreditWords.setTextContent(pageNumberText); // Set the text equal to the page number
 				
 				// Set all the attributes
-				pageNumberCreditWords.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
-				pageNumberCreditWords.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				pageNumberCreditWords.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenHorizontal : oddHorizontal));
+				pageNumberCreditWords.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				pageNumberCreditWords.setAttribute("justify", isEvenPage ? "left" : "right");
 				pageNumberCreditWords.setAttribute("valign", "top");
 				pageNumberCreditWords.setAttribute("font-size", "14");
@@ -710,8 +711,8 @@ public final class MusicXMLCleaner {
 				pageNumberCreditWords.setTextContent(title); // Set the text equal to the page number
 				
 				// Set all the attributes
-				pageNumberCreditWords.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
-				pageNumberCreditWords.setAttribute("default-y", String.format("%.4f", isEvenPage ? evenVertical : oddVertical));
+				pageNumberCreditWords.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
+				pageNumberCreditWords.setAttribute("default-y", String.format(Locale.US, "%.4f", isEvenPage ? evenVertical : oddVertical));
 				pageNumberCreditWords.setAttribute("justify", "center");
 				pageNumberCreditWords.setAttribute("valign", "top");
 				pageNumberCreditWords.setAttribute("font-size", "12");
@@ -985,7 +986,7 @@ public final class MusicXMLCleaner {
 				// Check if this credit needs to be centered.
 				if (creditWordsElement.getAttribute("justify").equals("center") || creditWordsElement.getAttribute("halign").equals("center")) {
 					// Center it!
-					creditWordsElement.setAttribute("default-x", String.format("%.4f", isEvenPage ? evenCenter : oddCenter));
+					creditWordsElement.setAttribute("default-x", String.format(Locale.US, "%.4f", isEvenPage ? evenCenter : oddCenter));
 				}
 			}
 		}
@@ -1108,7 +1109,7 @@ public final class MusicXMLCleaner {
 				}
 				else {
 					// This system is indented some, so we just change the indentation.
-					leftMarginsElement.setTextContent(String.format("%.2f", newValue)); // Since MuseScore uses 2 decimal places of accuracy, so will I.
+					leftMarginsElement.setTextContent(String.format(Locale.US, "%.2f", newValue)); // Since MuseScore uses 2 decimal places of accuracy, so will I.
 				}
 			}
 			catch (NumberFormatException e) {
