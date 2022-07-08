@@ -1017,6 +1017,7 @@ public final class MusicXMLCleaner {
 	 * <br><br>
 	 * This method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
 	 * This method will also do nothing if there is only system in the entire score.  
+	 * This method will also do nothing if there is a part abbreviation for any instrument in the score.
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	private static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
@@ -1025,12 +1026,28 @@ public final class MusicXMLCleaner {
 			return; // Bruh. :(
 		}
 		
+		// Get all of the <part-abbreviation> tags.
+		NodeList partAbbreviationTags = document.getElementsByTagName("part-abbreviation");
+		for (int i = 0; i < partAbbreviationTags.getLength(); i++) {
+			Element partAbbreviationTag = (Element) partAbbreviationTags.item(0);
+			
+			if (!partAbbreviationTag.getTextContent().isEmpty()) {
+				// We've found a part with a part abbreviation text.
+				// This abbreviation will show up on Finale and it will look bad if we force alignment.
+				// So, we'll just do nothing.
+				System.out.println("One or more parts has a shortened name. Aborting aligning.");
+				return;
+			}
+		}
+		
+		// If we've made it to this point, none of the parts has a shortened name, so we're good to align all we like!
+		
 		// Fetch all the <system-layout> tags
 		NodeList allSystemLayoutTags = document.getElementsByTagName("system-layout");
 		
 		// Check how many <system-layout> tags we have
 		if (allSystemLayoutTags.getLength() <= 1) {
-			// In this case, we either don't have enough relative information to slide all the systems, so we'll just do nothing
+			// In this case, we don't have enough relative information to slide all the systems, so we'll just do nothing
 			// NOTE: we could use some standard default value in this case, but for now, I'll just do nothing.
 			return;
 		}
