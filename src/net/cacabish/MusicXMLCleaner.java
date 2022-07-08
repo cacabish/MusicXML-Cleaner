@@ -1171,9 +1171,10 @@ public final class MusicXMLCleaner {
 			
 			// At this point, we can assume this sound tag is inside a <direction> tag. Great! Now, let's check that it actually pertains to repeats.
 			if (soundElement.getAttribute("dacapo").equalsIgnoreCase("yes")           // Is this a "D.C. ______"?
-					|| soundElement.getAttribute("dalsegno").equalsIgnoreCase("yes")  // Is this a "D.S. ______"?
-					|| soundElement.getAttribute("fine").equalsIgnoreCase("yes")      // Is this a "Fine"?
-					|| soundElement.getAttribute("tocoda").equalsIgnoreCase("yes"))   // Is this a "To Coda"?
+					|| !soundElement.getAttribute("dalsegno").isEmpty()               // Is this a "D.S. ______"?
+					|| !soundElement.getAttribute("fine").isEmpty()                   // Is this a "Fine"?
+					|| !soundElement.getAttribute("tocoda").isEmpty()                 // Is this a "To Coda"?
+				)
 			{
 				// It passed one of tests! Fantastic! Almost done now. We just need the <words> tag.
 				NodeList wordsList = ((Element) parentNode).getElementsByTagName("words");
