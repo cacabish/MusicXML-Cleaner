@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Locale;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -39,7 +40,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.3.1
+ * @version v1.4.0
  *
  */
 public final class MusicXMLCleaner {
@@ -100,6 +101,11 @@ public final class MusicXMLCleaner {
 	 * Default = true.
 	 */
 	public static boolean replaceEdwinAndFreeSerifWithTimesNewRoman = true;
+	/**
+	 * A boolean flag signaling whether to attempt to format an ossia based on what's been given.
+	 * Default = true.
+	 */
+	public static boolean formatOssias = true;
 
 
 	/*
@@ -176,6 +182,8 @@ public final class MusicXMLCleaner {
 			MusicXMLCleaner.addSwing8thsWhereSwingDirection(validatedDoc);
 		if (replaceEdwinAndFreeSerifWithTimesNewRoman)
 			MusicXMLCleaner.replaceEdwinAndFreeSerifWithTimesNewRoman(validatedDoc);
+		if (formatOssias)
+			MusicXMLCleaner.formatOssias(validatedDoc);
 		
 		System.out.println("===== End New Cleaning Job =====");
 	}
@@ -495,12 +503,21 @@ public final class MusicXMLCleaner {
 			return -1; // *eyeroll* :(
 		}
 		
-		// Gets all the <print> tags
-		NodeList nodeList = document.getElementsByTagName("print");
+		// Get all the parts
+		NodeList partsList = document.getElementsByTagName("part");
+		if (partsList.getLength() == 0) {
+			return -1; // No parts, no dice.
+		}
+		
+		// Get the first part
+		Element firstPart = (Element) partsList.item(0);
+		
+		// Get all the <print> tags of the first part
+		NodeList printTagList = firstPart.getElementsByTagName("print");
 		
 		int numberOfPages = 1; // There is at least one page
-		for (int i = 0; i < nodeList.getLength(); i++) {
-			Element printElement = (Element) nodeList.item(i);
+		for (int i = 0; i < printTagList.getLength(); i++) {
+			Element printElement = (Element) printTagList.item(i);
 			
 			// If this <print> tag creates a new page, increment the count
 			if (printElement.getAttribute("new-page").equals("yes")) {
@@ -1000,6 +1017,7 @@ public final class MusicXMLCleaner {
 	 * <br><br>
 	 * This method will not touch any systems that are poorly formatted. If all systems are poorly formatted, this method does nothing.
 	 * This method will also do nothing if there is only system in the entire score.  
+	 * This method will also do nothing if there is a part abbreviation for any instrument in the score.
 	 * @param document a validated MusicXML v3.1 document
 	 */
 	private static void offsetSystemMarginsToAlignWithLeftMargin(Document document) {
@@ -1008,12 +1026,28 @@ public final class MusicXMLCleaner {
 			return; // Bruh. :(
 		}
 		
+		// Get all of the <part-abbreviation> tags.
+		NodeList partAbbreviationTags = document.getElementsByTagName("part-abbreviation");
+		for (int i = 0; i < partAbbreviationTags.getLength(); i++) {
+			Element partAbbreviationTag = (Element) partAbbreviationTags.item(0);
+			
+			if (!partAbbreviationTag.getTextContent().isEmpty()) {
+				// We've found a part with a part abbreviation text.
+				// This abbreviation will show up on Finale and it will look bad if we force alignment.
+				// So, we'll just do nothing.
+				System.out.println("One or more parts has a shortened name. Aborting aligning.");
+				return;
+			}
+		}
+		
+		// If we've made it to this point, none of the parts has a shortened name, so we're good to align all we like!
+		
 		// Fetch all the <system-layout> tags
 		NodeList allSystemLayoutTags = document.getElementsByTagName("system-layout");
 		
 		// Check how many <system-layout> tags we have
 		if (allSystemLayoutTags.getLength() <= 1) {
-			// In this case, we either don't have enough relative information to slide all the systems, so we'll just do nothing
+			// In this case, we don't have enough relative information to slide all the systems, so we'll just do nothing
 			// NOTE: we could use some standard default value in this case, but for now, I'll just do nothing.
 			return;
 		}
@@ -1154,9 +1188,10 @@ public final class MusicXMLCleaner {
 			
 			// At this point, we can assume this sound tag is inside a <direction> tag. Great! Now, let's check that it actually pertains to repeats.
 			if (soundElement.getAttribute("dacapo").equalsIgnoreCase("yes")           // Is this a "D.C. ______"?
-					|| soundElement.getAttribute("dalsegno").equalsIgnoreCase("yes")  // Is this a "D.S. ______"?
-					|| soundElement.getAttribute("fine").equalsIgnoreCase("yes")      // Is this a "Fine"?
-					|| soundElement.getAttribute("tocoda").equalsIgnoreCase("yes"))   // Is this a "To Coda"?
+					|| !soundElement.getAttribute("dalsegno").isEmpty()               // Is this a "D.S. ______"?
+					|| !soundElement.getAttribute("fine").isEmpty()                   // Is this a "Fine"?
+					|| !soundElement.getAttribute("tocoda").isEmpty()                 // Is this a "To Coda"?
+				)
 			{
 				// It passed one of tests! Fantastic! Almost done now. We just need the <words> tag.
 				NodeList wordsList = ((Element) parentNode).getElementsByTagName("words");
@@ -1480,6 +1515,342 @@ public final class MusicXMLCleaner {
 		
 		// Done!
 		System.out.println("Done replacing FreeSerif and Edwin with Times New Roman!");
+	}
+	
+	/**
+	 * This method formats any ossias that it happens to come across.
+	 * A part is a candidate for an ossia if the part's name is "ossia", case insensitive. 
+	 * <br><br>
+	 * If this method is unable to find any candidates ossias, this method does nothing.
+	 * @param document a validated MusicXML v3.1 document
+	 */
+	private static void formatOssias(Document document) {
+		System.out.println("Attempting to format ossias...");
+		if (document == null) {
+			return; // Nope. Not working this time. :(
+		}
+		
+		// First, we get the part list to see which part corresponds to the ossia
+		NodeList partList = document.getElementsByTagName("part-list");
+		if (partList.getLength() == 0) {
+			// There were no parts. We literally cannot proceed.
+			return;
+		}
+		// At this point, there is at least one of these, and there should only be one of these, so we're good.
+		Element partListElement = (Element) partList.item(0);
+		
+		// In theory, there's nothing wrong with having multiple different ossia staffs, so we'll process them all.
+		HashSet<String> ossiaPartIDs = new HashSet<>();
+		
+		// Get the score part list
+		NodeList scorePartList = partListElement.getElementsByTagName("score-part");
+		
+		for (int i = 0; i < scorePartList.getLength(); i++) {
+			if (scorePartList.item(i).getNodeType() == Node.ELEMENT_NODE) {
+				Element scorePartElement = (Element) scorePartList.item(i);
+				
+				// Get the part id
+				String partNameID = scorePartElement.getAttribute("id");
+				if (partNameID == null || partNameID.isEmpty()) {
+					// Technically, this has to exist according to the spec, but we'll safety check it anyway.
+					continue;
+				}
+				
+				// Get the part name
+				NodeList partNameList = scorePartElement.getElementsByTagName("part-name");
+				if (partNameList.getLength() != 1) {
+					// Technically, this has to exist according to the spec, but we'll safety check it anyway.
+					continue;
+				}
+				
+				String partName = partNameList.item(0).getTextContent().trim();
+				if (partName.equalsIgnoreCase("ossia")) {
+					// We'll flag this part as an ossia
+					ossiaPartIDs.add(partNameID);
+				}
+				
+			}
+		}
+		
+		// Now, we go through all the parts
+		NodeList listOfParts = document.getElementsByTagName("part");
+		for (int i = 0; i < listOfParts.getLength(); i++) {
+			Node partNode = listOfParts.item(i);
+			if (partNode.getNodeType() == Node.ELEMENT_NODE) {
+				Element partElement = (Element) partNode;
+				String partReferenceID = partElement.getAttribute("id");
+				
+				if (partReferenceID == null || partReferenceID.isEmpty()) {
+					// Nothing we can do here.
+					continue;
+				}
+				
+				if (!ossiaPartIDs.contains(partReferenceID)) {
+					// This isn't an ossia part. Skip this one.
+					continue;
+				}
+				
+				// Alright, this is an ossia part! We can proceed!
+				// Get all the measures for this part (we will need all of them
+				NodeList listOfMeasures = partElement.getElementsByTagName("measure");
+				
+				Element startOfSystemMeasure = null;
+				boolean doesMusicHappenOnThisSystem = false;
+				boolean isMusicSetToDisplayAlready = true;
+				
+				for (int j = 0; j < listOfMeasures.getLength(); j++) {
+					Element measureTag = (Element) listOfMeasures.item(j); // Get the measure tag
+					String measureNumber = measureTag.getAttribute("number"); // Fetch the measure number
+					
+					if (measureNumber.trim().equals("1")) {
+						// This is the first measure, so we will format the staff here.
+						startOfSystemMeasure = measureTag;
+						
+						// Now we need to format the staff
+						NodeList attributesTags = measureTag.getElementsByTagName("attributes");
+						if (attributesTags.getLength() == 0) {
+							// We need to create the attributes tag
+							Element attributesTag = document.createElement("attributes");
+							
+							Element staffDetailsTag = document.createElement("staff-details");
+							attributesTag.appendChild(staffDetailsTag);
+							
+							// Format the staff to be of "ossia" type
+							Element staffTypeTag = document.createElement("staff-type");
+							staffTypeTag.setTextContent("ossia");
+							staffDetailsTag.appendChild(staffTypeTag);
+							
+							NodeList notesTags = measureTag.getElementsByTagName("note");
+							if (notesTags.getLength() == 0) {
+								// Just put it at the end (Finale will probably do weird stuff, but the fact is, this probably shouldn't happen) 
+								startOfSystemMeasure.appendChild(attributesTag);
+							}
+							else {
+								// Put right before the <notes> tag
+								measureTag.insertBefore(attributesTag, (Element) notesTags.item(0));
+							}
+						}
+						else {
+							// The attributes tag already exists
+							Element attributesTag = (Element) attributesTags.item(0);
+							
+							NodeList staffDetailsTags = attributesTag.getElementsByTagName("staff-details");
+							if (staffDetailsTags.getLength() == 0) {
+								// We need to create the staff-details tag
+								Element staffDetailsTag = document.createElement("staff-details");
+								
+								// Format the staff to be of "ossia" type
+								Element staffTypeTag = document.createElement("staff-type");
+								staffTypeTag.setTextContent("ossia");
+								staffDetailsTag.appendChild(staffTypeTag);
+								
+								// Since where we place this matters, we will find the first tag that's supposed to come after it, and put it before it.
+								String[] tagNamesThatComeAfterStaffDetailsTag = new String[] {"transpose", "for-part", "directive", "measure-style"};
+								Element candidateTag = null;
+								
+								// Go through the tags in order
+								for (String tagNameToPlaceBefore : tagNamesThatComeAfterStaffDetailsTag) {
+									NodeList candidateTags = attributesTag.getElementsByTagName(tagNameToPlaceBefore);
+									if (candidateTags.getLength() != 0) {
+										// Got a match! Use this candidate!
+										candidateTag = (Element) candidateTags.item(0);
+										break; // We were just looking for the first one we came across.
+									}
+								}
+								
+								// Insert before its closest successor
+								attributesTag.insertBefore(staffDetailsTag, candidateTag);
+							}
+							else {
+								// The staff-details tag already exists
+								Element staffDetailsTag = (Element) staffDetailsTags.item(0);
+								
+								NodeList staffTypeTags = staffDetailsTag.getElementsByTagName("staff-type");
+								if (staffTypeTags.getLength() == 0) {
+									// We need to create the staff-type tag
+									
+									// Format the staff to be of "ossia" type
+									Element staffTypeTag = document.createElement("staff-type");
+									staffTypeTag.setTextContent("ossia");
+									staffDetailsTag.appendChild(staffTypeTag);
+								}
+								else {
+									// The staff-type tag already exists
+									Element staffTypeTag = (Element) staffTypeTags.item(0);
+									
+									// Make sure the content is set to "ossia"
+									staffTypeTag.setTextContent("ossia");
+								}
+								
+							}
+						}
+						
+					}
+					
+					// We're looking for a "new-system" or "new-page"
+					NodeList listOfPrints = measureTag.getElementsByTagName("print");
+					if (listOfPrints.getLength() != 0) {
+						// Okay, there's a print tag
+						Element printTag = (Element) listOfPrints.item(0);
+						String newSystemAttribute = printTag.getAttribute("new-system");
+						String newPageAttribute   = printTag.getAttribute("new-page");
+						
+						if (newSystemAttribute.equalsIgnoreCase("yes") || newPageAttribute.equalsIgnoreCase("yes")) {
+							// This is the start of a new system! 
+							// So, we need to resolve the previous system and see if we need to change how we display it.
+							
+							if (doesMusicHappenOnThisSystem != isMusicSetToDisplayAlready) {
+								// This means we need to either start displaying music on the previous system...
+								// ... or we need to turn it off.
+								
+								NodeList attributesTagOfTheFirstMeasureOfThePreviousSystem = startOfSystemMeasure.getElementsByTagName("attributes");
+								if (attributesTagOfTheFirstMeasureOfThePreviousSystem.getLength() == 0) {
+									// We need to create the attributes tag.
+									Element attributesTag = document.createElement("attributes");
+									
+									Element staffDetailsTag = document.createElement("staff-details");
+									staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+									attributesTag.appendChild(staffDetailsTag);
+									
+									NodeList notesTags = startOfSystemMeasure.getElementsByTagName("note");
+									if (notesTags.getLength() == 0) {
+										// Just put it at the end (Finale will probably do weird stuff, but the fact is, this probably shouldn't happen)
+										startOfSystemMeasure.appendChild(attributesTag);
+									}
+									else {
+										// Put right before the <notes> tag
+										startOfSystemMeasure.insertBefore(attributesTag, (Element) notesTags.item(0));
+									}
+								}
+								else {
+									// The attributes tag already exists
+									Element attributesTag = (Element) attributesTagOfTheFirstMeasureOfThePreviousSystem.item(0);
+									
+									NodeList staffDetailsTags = attributesTag.getElementsByTagName("staff-details");
+									if (staffDetailsTags.getLength() == 0) {
+										// We need to create the staff-details tag
+										Element staffDetailsTag = document.createElement("staff-details");
+										staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+										
+										// Since where we place this matters, we will find the first tag that's supposed to come after it, and put it before it.
+										String[] tagNamesThatComeAfterStaffDetailsTag = new String[] {"transpose", "for-part", "directive", "measure-style"};
+										Element candidateTag = null;
+										
+										// Go through the tags in order
+										for (String tagNameToPlaceBefore : tagNamesThatComeAfterStaffDetailsTag) {
+											NodeList candidateTags = attributesTag.getElementsByTagName(tagNameToPlaceBefore);
+											if (candidateTags.getLength() != 0) {
+												// Got a match! Use this candidate!
+												candidateTag = (Element) candidateTags.item(0);
+												break; // We were just looking for the first one we came across.
+											}
+										}
+										
+										// Insert before its closest successor
+										attributesTag.insertBefore(staffDetailsTag, candidateTag);
+									}
+									else {
+										// The staff-details tag already exists
+										Element staffDetailsTag = (Element) staffDetailsTags.item(0);
+										staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+									}
+									
+								}
+								
+								// Now that the tags have been properly made/updated...
+								// ... make it so the internal state of the display is up-to-date
+								isMusicSetToDisplayAlready = doesMusicHappenOnThisSystem; 
+							}
+							
+							// RESET FOR NEXT SYSTEM //
+							startOfSystemMeasure = measureTag; // Assign this measure as the new start of a system.
+							doesMusicHappenOnThisSystem = false;   // Reset for the new system
+							
+						}
+					}
+					
+					// If we haven't found any non-rest measures on this system, we need to keep looking.
+					if (!doesMusicHappenOnThisSystem) {
+						NodeList listOfNotes = measureTag.getElementsByTagName("note");
+						for (int k = 0; k < listOfNotes.getLength(); k++) {
+							Element noteTag = (Element) listOfNotes.item(k);
+							
+							// Check if there is a rest tag inside the note tag.
+							if (noteTag.getElementsByTagName("rest").getLength() == 0) {
+								// This note is NOT a rest, which means there is music here!
+								doesMusicHappenOnThisSystem = true;
+								break;
+							}
+						}
+					}
+					
+				}
+				
+				// Finally, we need to resolve the last system of the part
+				if (doesMusicHappenOnThisSystem != isMusicSetToDisplayAlready) {
+					// This means we need to either start displaying music on the previous system...
+					// ... or we need to turn it off.
+					
+					NodeList attributesTagOfTheFirstMeasureOfThePreviousSystem = startOfSystemMeasure.getElementsByTagName("attributes");
+					if (attributesTagOfTheFirstMeasureOfThePreviousSystem.getLength() == 0) {
+						// We need to create the attributes tag.
+						Element attributesTag = document.createElement("attributes");
+						
+						Element staffDetailsTag = document.createElement("staff-details");
+						staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+						attributesTag.appendChild(staffDetailsTag);
+						
+						NodeList notesTags = startOfSystemMeasure.getElementsByTagName("note");
+						if (notesTags.getLength() == 0) {
+							// Just put it at the end (Finale will probably do weird stuff, but the fact is, this probably shouldn't happen) 
+							startOfSystemMeasure.appendChild(attributesTag);
+						}
+						else {
+							// Put right before the <notes> tag
+							startOfSystemMeasure.insertBefore(attributesTag, (Element) notesTags.item(0));
+						}
+						
+					}
+					else {
+						// The attributes tag already exists
+						Element attributesTag = (Element) attributesTagOfTheFirstMeasureOfThePreviousSystem.item(0);
+						
+						NodeList staffDetailsTags = attributesTag.getElementsByTagName("staff-details");
+						if (staffDetailsTags.getLength() == 0) {
+							// We need to create the staff-details tag
+							Element staffDetailsTag = document.createElement("staff-details");
+							staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+							
+							// Since where we place this matters, we will find the first tag that's supposed to come after it, and put it before it.
+							String[] tagNamesThatComeAfterStaffDetailsTag = new String[] {"transpose", "for-part", "directive", "measure-style"};
+							Element candidateTag = null;
+							
+							// Go through the tags in order
+							for (String tagNameToPlaceBefore : tagNamesThatComeAfterStaffDetailsTag) {
+								NodeList candidateTags = attributesTag.getElementsByTagName(tagNameToPlaceBefore);
+								if (candidateTags.getLength() != 0) {
+									// Got a match! Use this candidate!
+									candidateTag = (Element) candidateTags.item(0);
+									break; // We were just looking for the first one we came across.
+								}
+							}
+							
+							// Insert before its closest successor
+							attributesTag.insertBefore(staffDetailsTag, candidateTag);
+						}
+						else {
+							// The staff-details tag already exists
+							Element staffDetailsTag = (Element) staffDetailsTags.item(0);
+							staffDetailsTag.setAttribute("print-object", doesMusicHappenOnThisSystem ? "yes" : "no"); // Set the staff to not display
+						}
+						
+					}
+				}
+			}
+		}
+		
+		// Done!
+		System.out.println("Done formatting ossias!");
 	}
 	
 	/**
