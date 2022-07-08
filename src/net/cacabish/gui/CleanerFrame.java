@@ -45,14 +45,14 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version v1.3.1
+ * @version v1.4.0
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "v1.3.1";
+	public static final String VERSION = "v1.4.0";
 	public static final String MUSESCORE_VERSION = "v3.6.2";
 
 	private final JPanel contentPane;
@@ -129,7 +129,7 @@ public class CleanerFrame extends JFrame {
 		 */
 		setTitle("MusicXML Cleaner " + VERSION + " for MuseScore " + MUSESCORE_VERSION);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 525, 425); // Set initial size parameters
+		setBounds(100, 100, 550, 450); // Set initial size parameters
 		setLocationRelativeTo(null); // Centers to the screen
 		
 		
@@ -457,6 +457,22 @@ public class CleanerFrame extends JFrame {
 			}
 		});
 		operationsPanel.add(chckbxReplaceFonts);
+		
+		/*
+		 * Replace uses of the fonts Edwin and FreeSerif with Times New Roman
+		 */
+		JCheckBox chckbxFormatOssias= new JCheckBox("Format Ossias");
+		chckbxFormatOssias.setToolTipText("If checked, the program will attempt to format any ossias that exist.");
+		chckbxFormatOssias.setSelected(MusicXMLCleaner.formatOssias); // Set the default
+		chckbxFormatOssias.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// When the checkbox is ticked or unticked, update the flag corresponding to the operation.
+				MusicXMLCleaner.formatOssias = chckbxFormatOssias.isSelected();
+			}
+		});
+		operationsPanel.add(chckbxFormatOssias);
 		
 		
 		
