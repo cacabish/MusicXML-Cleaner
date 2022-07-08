@@ -503,12 +503,21 @@ public final class MusicXMLCleaner {
 			return -1; // *eyeroll* :(
 		}
 		
-		// Gets all the <print> tags
-		NodeList nodeList = document.getElementsByTagName("print");
+		// Get all the parts
+		NodeList partsList = document.getElementsByTagName("part");
+		if (partsList.getLength() == 0) {
+			return -1; // No parts, no dice.
+		}
+		
+		// Get the first part
+		Element firstPart = (Element) partsList.item(0);
+		
+		// Get all the <print> tags of the first part
+		NodeList printTagList = firstPart.getElementsByTagName("print");
 		
 		int numberOfPages = 1; // There is at least one page
-		for (int i = 0; i < nodeList.getLength(); i++) {
-			Element printElement = (Element) nodeList.item(i);
+		for (int i = 0; i < printTagList.getLength(); i++) {
+			Element printElement = (Element) printTagList.item(i);
 			
 			// If this <print> tag creates a new page, increment the count
 			if (printElement.getAttribute("new-page").equals("yes")) {
