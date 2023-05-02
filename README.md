@@ -5,7 +5,7 @@ A tool for [NinSheetMusic.org](https://www.NinSheetMusic.org/) arrangers who use
 This program fixes bugs that result from exporting MuseScore sheets to the MusicXML 3.1 format and formats them according www.NinSheetMusic.org formatting guidelines.
 
 This program does the following *(any of the following can be enabled or disabled in the program)*:
-* Adds and formats page numbers and mini-titles to pages 2+
+* Adds and formats page numbers and mini-titles for pages 2+
 * Adds system measure numbers
 * Removes duplicate copyright information and corrects the font size of the primary copyright information
 * Corrects metronome and tempo markings
@@ -15,6 +15,7 @@ This program does the following *(any of the following can be enabled or disable
 * Adds periods to the ends of numbers in ending texts (AKA voltas)
 * Adds swing 8th notes wherever there is a direction that says "Swing"
 * Replaces uses of the fonts Edwin or FreeSerif with Times New Roman
+* Formats ossias
 
 ## Installation
 Go to https://github.com/cacabish/MusicXML-Cleaner/releases and download the latest .jar file corresponding to the desired version. Do NOT download the source code. There is no installation required, simply double click to execute.
@@ -38,7 +39,7 @@ You can download Java [here](https://www.java.com/en/download/).
 ## License
 MIT License
 
-Copyright (c) 2020-21 cacabish
+Copyright (c) 2020-23 cacabish
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
