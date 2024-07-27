@@ -38,7 +38,7 @@ You can download Java [here](https://www.java.com/en/download/).
 ## License
 MIT License
 
-Copyright (c) 2020-21 cacabish
+Copyright (c) 2020-24 cacabish
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

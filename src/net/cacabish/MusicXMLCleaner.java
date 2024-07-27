@@ -40,7 +40,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.4.0
+ * @version v1.4.1
  *
  */
 public final class MusicXMLCleaner {
@@ -1289,8 +1289,9 @@ public final class MusicXMLCleaner {
 			Element nextSibling = (Element) directionTypeTag.getNextSibling(); // Get the next sibling of this tag. Will be null if doesn't exist!
 			Element directionTag = (Element) directionTypeTag.getParentNode(); // <direction-type> elements are always children of a <direction> tag
 			
-			// Check if the text is "Swing"
-			if (wordsElement.getTextContent().trim().equalsIgnoreCase("swing")) {
+			String content = wordsElement.getTextContent().trim();
+			// Check if the text is "Swing" or "Swing 8ths"
+			if (content.equalsIgnoreCase("swing") || content.equalsIgnoreCase("swing 8ths")) {
 				// We need to add all the tags that will generate the swing rhythm notation
 				
 				/*
