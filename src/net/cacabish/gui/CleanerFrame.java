@@ -45,15 +45,15 @@ import net.cacabish.MusicXMLCleaner;
 /**
  * The main GUI for processing MusicXML files.
  * @author cacabish
- * @version v1.4.1
+ * @version v1.5.0
  *
  */
 public class CleanerFrame extends JFrame {
 
 	private static final long serialVersionUID = 7520073032182546710L;
 	
-	public static final String VERSION = "v1.4.1";
-	public static final String MUSESCORE_VERSION = "v3.6.2";
+	public static final String VERSION = "v1.5.0";
+	public static final String MUSESCORE_VERSION = "v4.5.1";
 
 	private final JPanel contentPane;
 	
@@ -723,9 +723,9 @@ public class CleanerFrame extends JFrame {
 					+ "<br><br>"
 					+ "GitHub Repo: <a href='https://github.com/cacabish/MusicXML-Cleaner'>https://github.com/cacabish/MusicXML-Cleaner</a>"
 					+ "<br><br>"
-					+ "Copyright (c) 2020-24 cacabish" 
+					+ "Copyright (c) 2020-25 cacabish" 
 					+ "<br>"
-					+ "MusicXML 3.1 by W3C Music Notation Community Group"
+					+ "MusicXML 4.0 by W3C Music Notation Community Group"
 					+ "<br>"
 					+ "Published under the MIT License"
 					+ "</body>"

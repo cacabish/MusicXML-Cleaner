@@ -40,7 +40,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.4.1
+ * @version v1.5.0
  *
  */
 public final class MusicXMLCleaner {
@@ -214,7 +214,7 @@ public final class MusicXMLCleaner {
 			@Override
 			public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
 				// Get the files from the local directory
-				InputStream url = getClass().getResourceAsStream("/musicxml-3.1/schema/" + systemId.substring(systemId.lastIndexOf("/") + 1));
+				InputStream url = getClass().getResourceAsStream("/musicxml-4.0/schema/" + systemId.substring(systemId.lastIndexOf("/") + 1));
 				
 				if (url != null) {
 					// Return pointer to the file
