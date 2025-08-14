@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Optional;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -40,7 +42,7 @@ import org.xml.sax.SAXException;
  * If a function modifies a document and it cannot complete for any reason, it should quietly fail.
  * 
  * @author cacabish
- * @version v1.5.0
+ * @version v1.5.1
  *
  */
 public final class MusicXMLCleaner {
@@ -883,73 +885,69 @@ public final class MusicXMLCleaner {
 		NodeList nodeList = document.getElementsByTagName("metronome");
 		
 		for (int i = 0; i < nodeList.getLength(); i++) {
-			Element metronomeTag = (Element) nodeList.item(i);
-			Element directionTypeTag = (Element) metronomeTag.getParentNode();
+			Element baseMetronomeTag = (Element) nodeList.item(i);
+			Element parentDirectionTypeTag = (Element) baseMetronomeTag.getParentNode();
+			Element grandparentDirectionTag = (Element) parentDirectionTypeTag.getParentNode();
 			
-			// Look for a previous <direction-type> that may contain the textual directions, such as a <words> direction
-			Node previous = directionTypeTag.getPreviousSibling();
-			while (previous != null && previous.getNodeType() != Node.ELEMENT_NODE) {
-				previous = previous.getPreviousSibling();
+			// Find all <direction-type> tags
+			NodeList allDirectionTypeTags = grandparentDirectionTag.getElementsByTagName("direction-type");
+			ArrayList<Element> allMetronomeOrWordsTag = new ArrayList<Element>();
+			for (int j = 0; j < allDirectionTypeTags.getLength(); j++) {
+				// Next, we want to just focus on the <metronome> and <words> tag of that <direction> tag.
+				Element childDirectionTypeTag = (Element) allDirectionTypeTags.item(j);
+				
+				// All these Optional monads allow us to skip a bunch of null checks and just get the element we want.
+				Optional<Element> optionalMetronomeTag = Optional
+						.ofNullable((Element) childDirectionTypeTag.getElementsByTagName("metronome").item(0));
+				Optional<Element> optionalWordsTag = Optional
+						.ofNullable((Element) childDirectionTypeTag.getElementsByTagName("words").item(0));
+
+				Optional<Element> metronomeOrWordsTag = Optional
+						.ofNullable(optionalMetronomeTag.orElseGet(() -> optionalWordsTag.orElseGet(null)));
+				metronomeOrWordsTag.map((element) -> allMetronomeOrWordsTag.add(element));
 			}
 			
-			if (previous == null) {
-				// The metronome marking is first; there is no musical direction marking before it
-				// Thus, we only need to replace the "default-x" attribute, if it exists, with "relative-x"
-				// However, ensure there isn't a "relative-x" already that we would override
+			if (allMetronomeOrWordsTag.size() == 0) {
+				// We didn't find any? That shouldn't happen, but there's nothing else to do, so just continue.
+				System.out.println("Didn't find any metronome/words marks. Skipping.");
+				continue;
+			}
+			
+			boolean wasFirstTagWords = false;
+			{
+				Element firstMetronomeOrWordsTag = allMetronomeOrWordsTag.get(0);
+				
+				// Replace the "default-x" attribute with "relative-x", if it exists.
+				// Also make sure there isn't a "relative-x" already that we would override
 				// It seems that Finale will always ignore the "default-x" attribute, so it should be future-proof to replace
-				String x = metronomeTag.getAttribute("default-x");
-				if (!x.isEmpty() && !metronomeTag.hasAttribute("relative-x")) {
-					metronomeTag.removeAttribute("default-x");
-					metronomeTag.setAttribute("relative-x", x);
+				String defaultX = firstMetronomeOrWordsTag.getAttribute("default-x");
+				if (!defaultX.isEmpty() && !firstMetronomeOrWordsTag.hasAttribute("relative-x")) {
+					firstMetronomeOrWordsTag.removeAttribute("default-x");
+					firstMetronomeOrWordsTag.setAttribute("relative-x", defaultX);
 				}
 				
-				// And we're done.
-			}
-			else {
-				// Check if there are words in this direction
-				Element previousElement = (Element) previous;
-				NodeList wordsList = previousElement.getElementsByTagName("words");
-				
-				if (wordsList.getLength() == 0) {
-					// This is something else. I'm not sure what would be here, but I don't know how to handle it. Abort.
-					System.out.println("Unexpected element before metronome mark. Skipping.");
-					continue;
-				}
-				else {
-					// There is a directional marking with <words>. We've got stuff to do. 
-					// First, get the first <words> tag - this should contain all the attributes we care about
-					Element firstWords = (Element) wordsList.item(0);
-					
-					// Replace the "default-x" attribute with "relative-x", if it exists.
-					// Also make sure there isn't a "relative-x" already that we would override
-					String x = firstWords.getAttribute("default-x");
-					if (!x.isEmpty() && !metronomeTag.hasAttribute("relative-x")) {
-						firstWords.removeAttribute("default-x");
-						firstWords.setAttribute("relative-x", x);
-					}
-					
-//					firstWords.removeAttribute("font-size"); // Optional. Remove the font-size tag and let Finale decide its size
-					
-					// Next, remove all coordinate attributes from the metronome mark
-					metronomeTag.removeAttribute("default-x");
-					metronomeTag.removeAttribute("default-y");
-					metronomeTag.removeAttribute("relative-x");
-					metronomeTag.removeAttribute("relative-y");
-					metronomeTag.removeAttribute("font-size");
-					
-					// Finally, ensure there is a "font-weight"=normal attribute
-					metronomeTag.setAttribute("font-weight", "normal");
-				}
+				wasFirstTagWords = firstMetronomeOrWordsTag.getTagName().equalsIgnoreCase("words");
 			}
 			
-			System.out.println("All finished correcting tempo markings!");
+			
+			for (int k = 1; k < allMetronomeOrWordsTag.size(); k++) {
+				Element metronomeOrWordsTag = allMetronomeOrWordsTag.get(k);
+				
+				// Since we want this to inherit the positional information from the first tag, we will remove all of it here
+				metronomeOrWordsTag.removeAttribute("default-x");
+				metronomeOrWordsTag.removeAttribute("default-y");
+				metronomeOrWordsTag.removeAttribute("relative-x");
+				metronomeOrWordsTag.removeAttribute("relative-y");
+				metronomeOrWordsTag.removeAttribute("font-size");
+				
+				if (wasFirstTagWords && metronomeOrWordsTag.getTagName().equalsIgnoreCase("metronome")) {
+					// Ensure that the font weight is normal for <metronome> tags that follow <words> tags
+					metronomeOrWordsTag.setAttribute("font-weight", "normal");
+				}
+			}
 		}
-		
-		/* 
-		 * XXX
-		 * This method does not address if there is text after the tempo mark or if there are other <direction-types> in the <direction> tag.
-		 * It is conceivable that other directional markings, such as dynamics, could suffer from the problem that this method fixes. To be investigated.
-		 */
+			
+		System.out.println("All finished correcting tempo markings!");
 	}
 	
 	/**
